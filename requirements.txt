@@ -1,0 +1,23 @@
+# Firebase Admin SDK
+firebase-admin==6.5.0
+
+# Data processing
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Environment variables
+python-dotenv==1.0.0
+
+# String matching (para mapeamento SKU → Receita)
+python-Levenshtein==0.25.0
+fuzzywuzzy==0.18.0
+
+# Google Cloud APIs (para futuras fases)
+# google-cloud-vision==3.5.0
+# google-generativeai==0.3.2
+
+# Date handling
+python-dateutil==2.8.2
+
+# JSON handling
+ujson==5.9.0

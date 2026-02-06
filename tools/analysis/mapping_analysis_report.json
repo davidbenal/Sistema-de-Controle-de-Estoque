@@ -1,0 +1,1508 @@
+{
+  "timestamp": "2026-02-03T22:45:32.155824",
+  "statistics": {
+    "total_mappings": 147,
+    "high_confidence": 0,
+    "low_confidence": 0,
+    "unmapped": 147,
+    "total_recipes": 100,
+    "total_zig_products": 49
+  },
+  "high_confidence_mappings": [],
+  "low_confidence_mappings": [],
+  "unmapped_products": [
+    {
+      "sku": "G",
+      "zig_name": "MONTUVIA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Montuvia",
+          "recipe_id": "T1XqaATji6c4m5AseY3W",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "m",
+      "zig_name": "PILSEN ",
+      "vendas_janeiro": 4,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0O",
+      "zig_name": "ROMPOPE",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0G",
+      "zig_name": "Dom Thom - Sanduiche de Hornado",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "4",
+      "zig_name": "TRIO DE CORVICHE DE QUEIJO",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "60%"
+        }
+      ]
+    },
+    {
+      "sku": "7",
+      "zig_name": "MADURO COM QUEIJO E SALPRIETA",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "68%"
+        },
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "64%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "61%"
+        }
+      ]
+    },
+    {
+      "sku": "04",
+      "zig_name": "Corona - 330ml",
+      "vendas_janeiro": 17,
+      "suggested_matches": []
+    },
+    {
+      "sku": "k",
+      "zig_name": "PINA COLADA",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "67%"
+        }
+      ]
+    },
+    {
+      "sku": "a",
+      "zig_name": "COPO SUCO",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "C",
+      "zig_name": "QUINOTO",
+      "vendas_janeiro": 25,
+      "suggested_matches": [
+        {
+          "recipe_name": "Quinotto",
+          "recipe_id": "IHwtfWpEpPc8O6ODhbvS",
+          "similarity": "93%"
+        }
+      ]
+    },
+    {
+      "sku": "5",
+      "zig_name": "PORÇÃO DE PATACONES (200G)",
+      "vendas_janeiro": 20,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "0Vy8lv9Zde3aLBmTgzZI",
+          "similarity": "95%"
+        },
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "CLCLSPDX306NHciwFwKt",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "e",
+      "zig_name": "CAIPIRINHA RUM",
+      "vendas_janeiro": 10,
+      "suggested_matches": []
+    },
+    {
+      "sku": "X",
+      "zig_name": "TAMARINDO",
+      "vendas_janeiro": 110,
+      "suggested_matches": [
+        {
+          "recipe_name": "Drink Tamarindo",
+          "recipe_id": "L9ZTRBBiYidayj2SUo4L",
+          "similarity": "75%"
+        }
+      ]
+    },
+    {
+      "sku": "5",
+      "zig_name": "PORÇÃO DE PATACONES (200G)",
+      "vendas_janeiro": 20,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "0Vy8lv9Zde3aLBmTgzZI",
+          "similarity": "95%"
+        },
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "CLCLSPDX306NHciwFwKt",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "8",
+      "zig_name": "MADURO COM QUEIJO E CHICHARON",
+      "vendas_janeiro": 36,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "94%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "76%"
+        }
+      ]
+    },
+    {
+      "sku": "4",
+      "zig_name": "TRIO DE CORVICHE DE QUEIJO",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "60%"
+        }
+      ]
+    },
+    {
+      "sku": "6",
+      "zig_name": "PORÇÃO DE CHIFLES (100G)",
+      "vendas_janeiro": 12,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Chifles (150g)",
+          "recipe_id": "hv7mRD9foJVaOCG6z7yN",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "W",
+      "zig_name": "UMIÑA",
+      "vendas_janeiro": 43,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0I",
+      "zig_name": "LLAPINGACHO",
+      "vendas_janeiro": 2,
+      "suggested_matches": []
+    },
+    {
+      "sku": "00",
+      "zig_name": "Drink Cortesia",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "08",
+      "zig_name": "Couvert artístico",
+      "vendas_janeiro": 19,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0L",
+      "zig_name": "Evento",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0L",
+      "zig_name": "Evento",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "i",
+      "zig_name": "GIN TÔNICA ",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0P",
+      "zig_name": "COSMOPOLITAN SHOT",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "1",
+      "zig_name": "TOSTADA DE HIGOS CON QUESO",
+      "vendas_janeiro": 16,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "87%"
+        }
+      ]
+    },
+    {
+      "sku": "F",
+      "zig_name": "CAMARÃO AL AJILLO",
+      "vendas_janeiro": 46,
+      "suggested_matches": [
+        {
+          "recipe_name": "Camarão Al ajillo",
+          "recipe_id": "BvgOrOZBtqMZ8bLenE89",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "Q",
+      "zig_name": "CHEESCAKE DE MADURO",
+      "vendas_janeiro": 14,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cheescake de Maduro",
+          "recipe_id": "pXmmxKk8jvY9FY6dOHeC",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0O",
+      "zig_name": "ROMPOPE",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "Q",
+      "zig_name": "CHEESCAKE DE MADURO",
+      "vendas_janeiro": 14,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cheescake de Maduro",
+          "recipe_id": "pXmmxKk8jvY9FY6dOHeC",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "G",
+      "zig_name": "MONTUVIA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Montuvia",
+          "recipe_id": "T1XqaATji6c4m5AseY3W",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0I",
+      "zig_name": "LLAPINGACHO",
+      "vendas_janeiro": 2,
+      "suggested_matches": []
+    },
+    {
+      "sku": "l",
+      "zig_name": "RABO DE GALO",
+      "vendas_janeiro": 9,
+      "suggested_matches": []
+    },
+    {
+      "sku": "e",
+      "zig_name": "CAIPIRINHA RUM",
+      "vendas_janeiro": 10,
+      "suggested_matches": []
+    },
+    {
+      "sku": "D",
+      "zig_name": "LOCRO DE PAPA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Locro de Papa",
+          "recipe_id": "LkQfUTFhwev15CdpR8ZK",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "n",
+      "zig_name": "IPA",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0M",
+      "zig_name": "CAIPIRINHA MARACUJA COM HIBISCO",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "B",
+      "zig_name": "ENCOCADO DE PESCADO",
+      "vendas_janeiro": 49,
+      "suggested_matches": [
+        {
+          "recipe_name": "Encocado de Pescado",
+          "recipe_id": "5SkVPcpbVWfUeiBAgoyF",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "2",
+      "zig_name": "TARTAR DE AVOCADO E CAMARÃO",
+      "vendas_janeiro": 56,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tartar de Avocado com camarão",
+          "recipe_id": "o3M2ijhFG6COtGWXkCc7",
+          "similarity": "89%"
+        }
+      ]
+    },
+    {
+      "sku": "L",
+      "zig_name": "ÁGUA ",
+      "vendas_janeiro": 24,
+      "suggested_matches": []
+    },
+    {
+      "sku": "b",
+      "zig_name": "CAIPIRINHA CACHAÇA",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "X",
+      "zig_name": "TAMARINDO",
+      "vendas_janeiro": 110,
+      "suggested_matches": [
+        {
+          "recipe_name": "Drink Tamarindo",
+          "recipe_id": "L9ZTRBBiYidayj2SUo4L",
+          "similarity": "75%"
+        }
+      ]
+    },
+    {
+      "sku": "C",
+      "zig_name": "QUINOTO",
+      "vendas_janeiro": 25,
+      "suggested_matches": [
+        {
+          "recipe_name": "Quinotto",
+          "recipe_id": "IHwtfWpEpPc8O6ODhbvS",
+          "similarity": "93%"
+        }
+      ]
+    },
+    {
+      "sku": "b",
+      "zig_name": "CAIPIRINHA CACHAÇA",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "00",
+      "zig_name": "Drink Cortesia",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "J",
+      "zig_name": "YASUNI",
+      "vendas_janeiro": 9,
+      "suggested_matches": [
+        {
+          "recipe_name": "Yasuni",
+          "recipe_id": "LcTvqFV9nI9CywzMsr0m",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "c",
+      "zig_name": "TOLITA COLADA",
+      "vendas_janeiro": 21,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "69%"
+        }
+      ]
+    },
+    {
+      "sku": "3",
+      "zig_name": "DUPLA DE MUCHIN",
+      "vendas_janeiro": 23,
+      "suggested_matches": []
+    },
+    {
+      "sku": "5",
+      "zig_name": "PORÇÃO DE PATACONES (200G)",
+      "vendas_janeiro": 20,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "0Vy8lv9Zde3aLBmTgzZI",
+          "similarity": "95%"
+        },
+        {
+          "recipe_name": "Porção de Patacones (250g)",
+          "recipe_id": "CLCLSPDX306NHciwFwKt",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "J",
+      "zig_name": "YASUNI",
+      "vendas_janeiro": 9,
+      "suggested_matches": [
+        {
+          "recipe_name": "Yasuni",
+          "recipe_id": "LcTvqFV9nI9CywzMsr0m",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "m",
+      "zig_name": "PILSEN ",
+      "vendas_janeiro": 4,
+      "suggested_matches": []
+    },
+    {
+      "sku": "1",
+      "zig_name": "TOSTADA DE HIGOS CON QUESO",
+      "vendas_janeiro": 16,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "87%"
+        }
+      ]
+    },
+    {
+      "sku": "F",
+      "zig_name": "CAMARÃO AL AJILLO",
+      "vendas_janeiro": 46,
+      "suggested_matches": [
+        {
+          "recipe_name": "Camarão Al ajillo",
+          "recipe_id": "BvgOrOZBtqMZ8bLenE89",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "06",
+      "zig_name": "Sol - 330ml",
+      "vendas_janeiro": 5,
+      "suggested_matches": []
+    },
+    {
+      "sku": "00",
+      "zig_name": "Drink Cortesia",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0N",
+      "zig_name": "CAIPIRINHA MAÇA SISCILIANO",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "A",
+      "zig_name": "CECINA DE COGUMELOS",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Cogumelos",
+          "recipe_id": "4EzkX1ZsjuxYmN1yF6R8",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "d",
+      "zig_name": "CAIPIRINHA VODKA",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "H",
+      "zig_name": "PAMBAMESA",
+      "vendas_janeiro": 15,
+      "suggested_matches": [
+        {
+          "recipe_name": "Pambamesa",
+          "recipe_id": "X8fam2xePuObqZA0Obf0",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "W",
+      "zig_name": "UMIÑA",
+      "vendas_janeiro": 43,
+      "suggested_matches": []
+    },
+    {
+      "sku": "I",
+      "zig_name": "SOLITÁRIO GEORGE",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Solitario George",
+          "recipe_id": "ivch5T1mDIWOoJNhxyuM",
+          "similarity": "97%"
+        }
+      ]
+    },
+    {
+      "sku": "P",
+      "zig_name": "COLADA MORADA",
+      "vendas_janeiro": 32,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "9",
+      "zig_name": "CECINA DE PORCO",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Porco",
+          "recipe_id": "8DSG7iTBU9uODQz1YuVc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "07",
+      "zig_name": "Heineken - 330ml",
+      "vendas_janeiro": 37,
+      "suggested_matches": []
+    },
+    {
+      "sku": "06",
+      "zig_name": "Sol - 330ml",
+      "vendas_janeiro": 5,
+      "suggested_matches": []
+    },
+    {
+      "sku": "J",
+      "zig_name": "YASUNI",
+      "vendas_janeiro": 9,
+      "suggested_matches": [
+        {
+          "recipe_name": "Yasuni",
+          "recipe_id": "LcTvqFV9nI9CywzMsr0m",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "m",
+      "zig_name": "PILSEN ",
+      "vendas_janeiro": 4,
+      "suggested_matches": []
+    },
+    {
+      "sku": "7",
+      "zig_name": "MADURO COM QUEIJO E SALPRIETA",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "68%"
+        },
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "64%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "61%"
+        }
+      ]
+    },
+    {
+      "sku": "8",
+      "zig_name": "MADURO COM QUEIJO E CHICHARON",
+      "vendas_janeiro": 36,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "94%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "76%"
+        }
+      ]
+    },
+    {
+      "sku": "H",
+      "zig_name": "PAMBAMESA",
+      "vendas_janeiro": 15,
+      "suggested_matches": [
+        {
+          "recipe_name": "Pambamesa",
+          "recipe_id": "X8fam2xePuObqZA0Obf0",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0I",
+      "zig_name": "LLAPINGACHO",
+      "vendas_janeiro": 2,
+      "suggested_matches": []
+    },
+    {
+      "sku": "C",
+      "zig_name": "QUINOTO",
+      "vendas_janeiro": 25,
+      "suggested_matches": [
+        {
+          "recipe_name": "Quinotto",
+          "recipe_id": "IHwtfWpEpPc8O6ODhbvS",
+          "similarity": "93%"
+        }
+      ]
+    },
+    {
+      "sku": "l",
+      "zig_name": "RABO DE GALO",
+      "vendas_janeiro": 9,
+      "suggested_matches": []
+    },
+    {
+      "sku": "4",
+      "zig_name": "TRIO DE CORVICHE DE QUEIJO",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "60%"
+        }
+      ]
+    },
+    {
+      "sku": "B",
+      "zig_name": "ENCOCADO DE PESCADO",
+      "vendas_janeiro": 49,
+      "suggested_matches": [
+        {
+          "recipe_name": "Encocado de Pescado",
+          "recipe_id": "5SkVPcpbVWfUeiBAgoyF",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "P",
+      "zig_name": "COLADA MORADA",
+      "vendas_janeiro": 32,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "07",
+      "zig_name": "Heineken - 330ml",
+      "vendas_janeiro": 37,
+      "suggested_matches": []
+    },
+    {
+      "sku": "04",
+      "zig_name": "Corona - 330ml",
+      "vendas_janeiro": 17,
+      "suggested_matches": []
+    },
+    {
+      "sku": "E",
+      "zig_name": "CEVICHE JIPIJAPA",
+      "vendas_janeiro": 76,
+      "suggested_matches": [
+        {
+          "recipe_name": "Ceviche Jipijapa",
+          "recipe_id": "XlEcTFciuIAMK0Vedcpc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "A",
+      "zig_name": "CECINA DE COGUMELOS",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Cogumelos",
+          "recipe_id": "4EzkX1ZsjuxYmN1yF6R8",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0P",
+      "zig_name": "COSMOPOLITAN SHOT",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "B",
+      "zig_name": "ENCOCADO DE PESCADO",
+      "vendas_janeiro": 49,
+      "suggested_matches": [
+        {
+          "recipe_name": "Encocado de Pescado",
+          "recipe_id": "5SkVPcpbVWfUeiBAgoyF",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "j",
+      "zig_name": "MOJITO",
+      "vendas_janeiro": 12,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0P",
+      "zig_name": "COSMOPOLITAN SHOT",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0M",
+      "zig_name": "CAIPIRINHA MARACUJA COM HIBISCO",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0O",
+      "zig_name": "ROMPOPE",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "06",
+      "zig_name": "Sol - 330ml",
+      "vendas_janeiro": 5,
+      "suggested_matches": []
+    },
+    {
+      "sku": "I",
+      "zig_name": "SOLITÁRIO GEORGE",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Solitario George",
+          "recipe_id": "ivch5T1mDIWOoJNhxyuM",
+          "similarity": "97%"
+        }
+      ]
+    },
+    {
+      "sku": "F",
+      "zig_name": "CAMARÃO AL AJILLO",
+      "vendas_janeiro": 46,
+      "suggested_matches": [
+        {
+          "recipe_name": "Camarão Al ajillo",
+          "recipe_id": "BvgOrOZBtqMZ8bLenE89",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "3",
+      "zig_name": "DUPLA DE MUCHIN",
+      "vendas_janeiro": 23,
+      "suggested_matches": []
+    },
+    {
+      "sku": "6",
+      "zig_name": "PORÇÃO DE CHIFLES (100G)",
+      "vendas_janeiro": 12,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Chifles (150g)",
+          "recipe_id": "hv7mRD9foJVaOCG6z7yN",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "D",
+      "zig_name": "LOCRO DE PAPA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Locro de Papa",
+          "recipe_id": "LkQfUTFhwev15CdpR8ZK",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "n",
+      "zig_name": "IPA",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "7",
+      "zig_name": "MADURO COM QUEIJO E SALPRIETA",
+      "vendas_janeiro": 24,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "68%"
+        },
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "64%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "61%"
+        }
+      ]
+    },
+    {
+      "sku": "L",
+      "zig_name": "ÁGUA ",
+      "vendas_janeiro": 24,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0M",
+      "zig_name": "CAIPIRINHA MARACUJA COM HIBISCO",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "K",
+      "zig_name": "REFRI",
+      "vendas_janeiro": 40,
+      "suggested_matches": []
+    },
+    {
+      "sku": "l",
+      "zig_name": "RABO DE GALO",
+      "vendas_janeiro": 9,
+      "suggested_matches": []
+    },
+    {
+      "sku": "d",
+      "zig_name": "CAIPIRINHA VODKA",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0H",
+      "zig_name": "Tigrillo",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "08",
+      "zig_name": "Couvert artístico",
+      "vendas_janeiro": 19,
+      "suggested_matches": []
+    },
+    {
+      "sku": "L",
+      "zig_name": "ÁGUA ",
+      "vendas_janeiro": 24,
+      "suggested_matches": []
+    },
+    {
+      "sku": "a",
+      "zig_name": "COPO SUCO",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "i",
+      "zig_name": "GIN TÔNICA ",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0N",
+      "zig_name": "CAIPIRINHA MAÇA SISCILIANO",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "X",
+      "zig_name": "TAMARINDO",
+      "vendas_janeiro": 110,
+      "suggested_matches": [
+        {
+          "recipe_name": "Drink Tamarindo",
+          "recipe_id": "L9ZTRBBiYidayj2SUo4L",
+          "similarity": "75%"
+        }
+      ]
+    },
+    {
+      "sku": "9",
+      "zig_name": "CECINA DE PORCO",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Porco",
+          "recipe_id": "8DSG7iTBU9uODQz1YuVc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "j",
+      "zig_name": "MOJITO",
+      "vendas_janeiro": 12,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0L",
+      "zig_name": "Evento",
+      "vendas_janeiro": 1,
+      "suggested_matches": []
+    },
+    {
+      "sku": "k",
+      "zig_name": "PINA COLADA",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "67%"
+        }
+      ]
+    },
+    {
+      "sku": "04",
+      "zig_name": "Corona - 330ml",
+      "vendas_janeiro": 17,
+      "suggested_matches": []
+    },
+    {
+      "sku": "i",
+      "zig_name": "GIN TÔNICA ",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "6",
+      "zig_name": "PORÇÃO DE CHIFLES (100G)",
+      "vendas_janeiro": 12,
+      "suggested_matches": [
+        {
+          "recipe_name": "Porção de Chifles (150g)",
+          "recipe_id": "hv7mRD9foJVaOCG6z7yN",
+          "similarity": "95%"
+        }
+      ]
+    },
+    {
+      "sku": "A",
+      "zig_name": "CECINA DE COGUMELOS",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Cogumelos",
+          "recipe_id": "4EzkX1ZsjuxYmN1yF6R8",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "d",
+      "zig_name": "CAIPIRINHA VODKA",
+      "vendas_janeiro": 8,
+      "suggested_matches": []
+    },
+    {
+      "sku": "E",
+      "zig_name": "CEVICHE JIPIJAPA",
+      "vendas_janeiro": 76,
+      "suggested_matches": [
+        {
+          "recipe_name": "Ceviche Jipijapa",
+          "recipe_id": "XlEcTFciuIAMK0Vedcpc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "K",
+      "zig_name": "REFRI",
+      "vendas_janeiro": 40,
+      "suggested_matches": []
+    },
+    {
+      "sku": "07",
+      "zig_name": "Heineken - 330ml",
+      "vendas_janeiro": 37,
+      "suggested_matches": []
+    },
+    {
+      "sku": "D",
+      "zig_name": "LOCRO DE PAPA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Locro de Papa",
+          "recipe_id": "LkQfUTFhwev15CdpR8ZK",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "2",
+      "zig_name": "TARTAR DE AVOCADO E CAMARÃO",
+      "vendas_janeiro": 56,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tartar de Avocado com camarão",
+          "recipe_id": "o3M2ijhFG6COtGWXkCc7",
+          "similarity": "89%"
+        }
+      ]
+    },
+    {
+      "sku": "W",
+      "zig_name": "UMIÑA",
+      "vendas_janeiro": 43,
+      "suggested_matches": []
+    },
+    {
+      "sku": "c",
+      "zig_name": "TOLITA COLADA",
+      "vendas_janeiro": 21,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "69%"
+        }
+      ]
+    },
+    {
+      "sku": "H",
+      "zig_name": "PAMBAMESA",
+      "vendas_janeiro": 15,
+      "suggested_matches": [
+        {
+          "recipe_name": "Pambamesa",
+          "recipe_id": "X8fam2xePuObqZA0Obf0",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0G",
+      "zig_name": "Dom Thom - Sanduiche de Hornado",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "e",
+      "zig_name": "CAIPIRINHA RUM",
+      "vendas_janeiro": 10,
+      "suggested_matches": []
+    },
+    {
+      "sku": "P",
+      "zig_name": "COLADA MORADA",
+      "vendas_janeiro": 32,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "0G",
+      "zig_name": "Dom Thom - Sanduiche de Hornado",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "a",
+      "zig_name": "COPO SUCO",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "I",
+      "zig_name": "SOLITÁRIO GEORGE",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Solitario George",
+          "recipe_id": "ivch5T1mDIWOoJNhxyuM",
+          "similarity": "97%"
+        }
+      ]
+    },
+    {
+      "sku": "0N",
+      "zig_name": "CAIPIRINHA MAÇA SISCILIANO",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "c",
+      "zig_name": "TOLITA COLADA",
+      "vendas_janeiro": 21,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "69%"
+        }
+      ]
+    },
+    {
+      "sku": "Q",
+      "zig_name": "CHEESCAKE DE MADURO",
+      "vendas_janeiro": 14,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cheescake de Maduro",
+          "recipe_id": "pXmmxKk8jvY9FY6dOHeC",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "9",
+      "zig_name": "CECINA DE PORCO",
+      "vendas_janeiro": 30,
+      "suggested_matches": [
+        {
+          "recipe_name": "Cecina de Porco",
+          "recipe_id": "8DSG7iTBU9uODQz1YuVc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "n",
+      "zig_name": "IPA",
+      "vendas_janeiro": 13,
+      "suggested_matches": []
+    },
+    {
+      "sku": "08",
+      "zig_name": "Couvert artístico",
+      "vendas_janeiro": 19,
+      "suggested_matches": []
+    },
+    {
+      "sku": "8",
+      "zig_name": "MADURO COM QUEIJO E CHICHARON",
+      "vendas_janeiro": 36,
+      "suggested_matches": [
+        {
+          "recipe_name": "Maduro com Queijo e Chicharon (1Un)",
+          "recipe_id": "sck1ybxq0hDEwg5XV7uu",
+          "similarity": "94%"
+        },
+        {
+          "recipe_name": "Maduro com Queijo (1Un)",
+          "recipe_id": "wTO7PXMq7D8x3ssDIyAD",
+          "similarity": "76%"
+        }
+      ]
+    },
+    {
+      "sku": "k",
+      "zig_name": "PINA COLADA",
+      "vendas_janeiro": 6,
+      "suggested_matches": [
+        {
+          "recipe_name": "Colada morada",
+          "recipe_id": "MguN3QUIWNuVh6xfrNfU",
+          "similarity": "67%"
+        }
+      ]
+    },
+    {
+      "sku": "b",
+      "zig_name": "CAIPIRINHA CACHAÇA",
+      "vendas_janeiro": 20,
+      "suggested_matches": []
+    },
+    {
+      "sku": "3",
+      "zig_name": "DUPLA DE MUCHIN",
+      "vendas_janeiro": 23,
+      "suggested_matches": []
+    },
+    {
+      "sku": "j",
+      "zig_name": "MOJITO",
+      "vendas_janeiro": 12,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0H",
+      "zig_name": "Tigrillo",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "E",
+      "zig_name": "CEVICHE JIPIJAPA",
+      "vendas_janeiro": 76,
+      "suggested_matches": [
+        {
+          "recipe_name": "Ceviche Jipijapa",
+          "recipe_id": "XlEcTFciuIAMK0Vedcpc",
+          "similarity": "100%"
+        }
+      ]
+    },
+    {
+      "sku": "2",
+      "zig_name": "TARTAR DE AVOCADO E CAMARÃO",
+      "vendas_janeiro": 56,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tartar de Avocado com camarão",
+          "recipe_id": "o3M2ijhFG6COtGWXkCc7",
+          "similarity": "89%"
+        }
+      ]
+    },
+    {
+      "sku": "K",
+      "zig_name": "REFRI",
+      "vendas_janeiro": 40,
+      "suggested_matches": []
+    },
+    {
+      "sku": "0H",
+      "zig_name": "Tigrillo",
+      "vendas_janeiro": 3,
+      "suggested_matches": []
+    },
+    {
+      "sku": "1",
+      "zig_name": "TOSTADA DE HIGOS CON QUESO",
+      "vendas_janeiro": 16,
+      "suggested_matches": [
+        {
+          "recipe_name": "Tostada de Figos com Queijo",
+          "recipe_id": "nZy98Mi9x7Lw5cyyVOea",
+          "similarity": "87%"
+        }
+      ]
+    },
+    {
+      "sku": "G",
+      "zig_name": "MONTUVIA",
+      "vendas_janeiro": 4,
+      "suggested_matches": [
+        {
+          "recipe_name": "Montuvia",
+          "recipe_id": "T1XqaATji6c4m5AseY3W",
+          "similarity": "100%"
+        }
+      ]
+    }
+  ],
+  "data_quality_issues": {
+    "capitalization": [
+      {
+        "sku": "G",
+        "original": "MONTUVIA",
+        "suggested": "Montuvia"
+      },
+      {
+        "sku": "m",
+        "original": "PILSEN ",
+        "suggested": "Pilsen "
+      },
+      {
+        "sku": "0O",
+        "original": "ROMPOPE",
+        "suggested": "Rompope"
+      },
+      {
+        "sku": "0G",
+        "original": "Dom Thom - Sanduiche de Hornado",
+        "suggested": "Dom Thom - Sanduiche De Hornado"
+      },
+      {
+        "sku": "4",
+        "original": "TRIO DE CORVICHE DE QUEIJO",
+        "suggested": "Trio De Corviche De Queijo"
+      },
+      {
+        "sku": "7",
+        "original": "MADURO COM QUEIJO E SALPRIETA",
+        "suggested": "Maduro Com Queijo E Salprieta"
+      },
+      {
+        "sku": "04",
+        "original": "Corona - 330ml",
+        "suggested": "Corona - 330Ml"
+      },
+      {
+        "sku": "k",
+        "original": "PINA COLADA",
+        "suggested": "Pina Colada"
+      },
+      {
+        "sku": "a",
+        "original": "COPO SUCO",
+        "suggested": "Copo Suco"
+      },
+      {
+        "sku": "C",
+        "original": "QUINOTO",
+        "suggested": "Quinoto"
+      }
+    ],
+    "extra_spaces": [
+      {
+        "sku": "m",
+        "original": "'PILSEN '",
+        "suggested": "PILSEN"
+      },
+      {
+        "sku": "i",
+        "original": "'GIN TÔNICA '",
+        "suggested": "GIN TÔNICA"
+      },
+      {
+        "sku": "L",
+        "original": "'ÁGUA '",
+        "suggested": "ÁGUA"
+      },
+      {
+        "sku": "m",
+        "original": "'PILSEN '",
+        "suggested": "PILSEN"
+      },
+      {
+        "sku": "m",
+        "original": "'PILSEN '",
+        "suggested": "PILSEN"
+      },
+      {
+        "sku": "L",
+        "original": "'ÁGUA '",
+        "suggested": "ÁGUA"
+      },
+      {
+        "sku": "L",
+        "original": "'ÁGUA '",
+        "suggested": "ÁGUA"
+      },
+      {
+        "sku": "i",
+        "original": "'GIN TÔNICA '",
+        "suggested": "GIN TÔNICA"
+      },
+      {
+        "sku": "i",
+        "original": "'GIN TÔNICA '",
+        "suggested": "GIN TÔNICA"
+      }
+    ],
+    "duplicates": [
+      {
+        "normalized": "porção de patacones (250g)",
+        "variants": [
+          "Porção de Patacones (250g)",
+          "Porção de Patacones (250g)"
+        ],
+        "ids": [
+          "0Vy8lv9Zde3aLBmTgzZI",
+          "CLCLSPDX306NHciwFwKt"
+        ]
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "category": "Mapeamentos",
+      "issue": "147 mapeamentos com baixa confiança (<80%)",
+      "action": "Revisar manualmente e confirmar ou corrigir mapeamentos",
+      "impact": "Vendas podem decrementar estoque incorreto"
+    },
+    {
+      "priority": "MEDIUM",
+      "category": "Duplicatas",
+      "issue": "1 receitas duplicadas detectadas",
+      "action": "Consolidar receitas duplicadas em uma única receita",
+      "impact": "Dados fragmentados e relatórios inconsistentes"
+    },
+    {
+      "priority": "LOW",
+      "category": "Padronização",
+      "issue": "Nomes com capitalization e espaços inconsistentes",
+      "action": "Aplicar Title Case e remover espaços extras",
+      "impact": "Melhor usabilidade e busca"
+    }
+  ]
+}

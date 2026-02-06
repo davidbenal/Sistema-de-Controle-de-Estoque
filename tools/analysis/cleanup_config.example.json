@@ -1,0 +1,24 @@
+{
+  "_comment": "Configure quais limpezas aplicar. Renomeie para cleanup_config.json após revisar.",
+
+  "apply_capitalization": true,
+  "remove_extra_spaces": true,
+
+  "update_mappings": [
+    {
+      "_comment": "Exemplo: Atualizar SKU 'X' para mapear para outra receita",
+      "sku": "X",
+      "new_recipe_id": "rec_abc123",
+      "new_recipe_name": "Tamarindo 500ml"
+    }
+  ],
+
+  "merge_duplicates": [
+    {
+      "_comment": "Exemplo: Manter primeira receita, arquivar duplicatas",
+      "keep_id": "rec_keep_this",
+      "remove_ids": ["rec_duplicate1", "rec_duplicate2"],
+      "canonical_name": "Nome Padronizado da Receita"
+    }
+  ]
+}
