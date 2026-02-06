@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { tasks, checklistTemplates, teamMembers, alerts } from '../data/mockData';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function Checklists() {
   const { user } = useAuth();

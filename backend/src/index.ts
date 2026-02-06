@@ -89,6 +89,7 @@ fastify.get('/', async () => {
       vendas: '/api/vendas',
       cadastros: '/api/cadastros',
       operacoes: '/api/operacoes',
+      estoque: '/api/estoque',
       relatorios: '/api/relatorios',
       mapeamentos: '/api/mapeamentos',
       alertas: '/api/alertas',
@@ -102,7 +103,8 @@ import { alertasRoutes } from './routes/alertas';
 import { dashboardRoutes } from './routes/dashboard';
 import { cadastrosRoutes } from './routes/cadastros';
 import { mapeamentosRoutes } from './routes/mapeamentos';
-// import operacoesRoutes from './routes/operacoes';
+import { operacoesRoutes } from './routes/operacoes';
+import { estoqueRoutes } from './routes/estoque';
 
 // Register routes
 fastify.register(vendasRoutes, { prefix: '/api/vendas' });
@@ -110,7 +112,8 @@ fastify.register(alertasRoutes, { prefix: '/api/alertas' });
 fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
 fastify.register(cadastrosRoutes, { prefix: '/api/cadastros' });
 fastify.register(mapeamentosRoutes, { prefix: '/api/mapeamentos' });
-// fastify.register(operacoesRoutes, { prefix: '/api/operacoes' });
+fastify.register(operacoesRoutes, { prefix: '/api/operacoes' });
+fastify.register(estoqueRoutes, { prefix: '/api/estoque' });
 
 // Start server
 const start = async () => {

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -18,7 +18,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { alerts } from '../data/mockData';
+import { config } from '../config';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from './ui/sheet';
 
 interface LayoutProps {
@@ -39,12 +39,12 @@ const navigation = [
 
 interface NavigationContentProps {
   onNavigate?: () => void;
+  unresolvedAlerts: number;
 }
 
-function NavigationContent({ onNavigate }: NavigationContentProps) {
+function NavigationContent({ onNavigate, unresolvedAlerts }: NavigationContentProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const unresolvedAlerts = alerts.filter((a) => !a.resolved).length;
 
   const filteredNavigation = navigation.filter((item) =>
     item.roles.includes(user?.role || 'operacao')
@@ -110,13 +110,28 @@ function NavigationContent({ onNavigate }: NavigationContentProps) {
 export function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const unresolvedAlerts = alerts.filter((a) => !a.resolved).length;
+  const [unresolvedAlerts, setUnresolvedAlerts] = useState(0);
+
+  useEffect(() => {
+    async function fetchAlertCount() {
+      try {
+        const response = await fetch(`${config.endpoints.alertas.stats}`);
+        const result = await response.json();
+        if (result.success) {
+          setUnresolvedAlerts(result.stats?.byStatus?.pending || 0);
+        }
+      } catch {
+        // Silently fail - badge just won't show
+      }
+    }
+    fetchAlertCount();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar Desktop */}
       <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col border-r bg-white">
-        <NavigationContent />
+        <NavigationContent unresolvedAlerts={unresolvedAlerts} />
       </aside>
 
       {/* Mobile Header */}
@@ -129,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
             <SheetTitle className="sr-only">Menu de Navegação</SheetTitle>
-            <NavigationContent onNavigate={() => setIsMobileMenuOpen(false)} />
+            <NavigationContent onNavigate={() => setIsMobileMenuOpen(false)} unresolvedAlerts={unresolvedAlerts} />
           </SheetContent>
         </Sheet>
 

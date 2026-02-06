@@ -102,6 +102,7 @@ export function Cadastros() {
     switch (activeTab) {
       case 'insumos':
         loadIngredients();
+        loadSuppliers(); // Carregar fornecedores para o formulário de ingredientes
         break;
       case 'fornecedores':
         loadSuppliers();
@@ -472,10 +473,27 @@ export function Cadastros() {
   };
 
   // View Detail handlers
-  const handleViewIngredient = (ingredient: any) => {
-    const supplier = suppliers.find(s => s.id === ingredient.supplier_id);
-    setSelectedSupplier(supplier);
+  const handleViewIngredient = async (ingredient: any) => {
     setViewingIngredient(ingredient);
+
+    // Carregar fornecedor relacionado
+    if (ingredient.supplierId || ingredient.supplier_id) {
+      const supplierId = ingredient.supplierId || ingredient.supplier_id;
+      try {
+        const response = await fetch(config.endpoints.cadastros.fornecedor(supplierId));
+        const result = await response.json();
+        if (result.success && result.data) {
+          setSelectedSupplier(result.data);
+        } else {
+          setSelectedSupplier(null);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar fornecedor:', error);
+        setSelectedSupplier(null);
+      }
+    } else {
+      setSelectedSupplier(null);
+    }
   };
 
   const handleViewSupplier = (supplier: any) => {

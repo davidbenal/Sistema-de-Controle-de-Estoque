@@ -41,7 +41,7 @@ import {
   wasteData,
   inventoryCounts,
 } from '../data/mockData';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function Relatorios() {
   const [period, setPeriod] = useState('7days');

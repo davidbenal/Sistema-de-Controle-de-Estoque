@@ -41,5 +41,38 @@ export const config = {
       resumo: `${API_URL}/api/dashboard/resumo`,
       ingredientesAbaixoMinimo: `${API_URL}/api/dashboard/ingredientes-abaixo-minimo`,
     },
+    operacoes: {
+      // Purchases (Pedidos)
+      purchases: `${API_URL}/api/operacoes/purchases`,
+      purchase: (id: string) => `${API_URL}/api/operacoes/purchases/${id}`,
+
+      // Receivings (Recebimentos)
+      receivings: `${API_URL}/api/operacoes/receivings`,
+      receiving: (id: string) => `${API_URL}/api/operacoes/receivings/${id}`,
+      uploadReceivingPhoto: (id: string) => `${API_URL}/api/operacoes/receivings/${id}/upload-photo`,
+      updateChecklistItem: (id: string, itemIndex: number) =>
+        `${API_URL}/api/operacoes/receivings/${id}/checklist/${itemIndex}`,
+      completeReceiving: (id: string) => `${API_URL}/api/operacoes/receivings/${id}/complete`,
+
+      // Inventory Counts (Contagens de Inventário)
+      inventoryCounts: `${API_URL}/api/operacoes/inventory-counts`,
+      inventoryCount: (id: string) => `${API_URL}/api/operacoes/inventory-counts/${id}`,
+      completeInventoryCount: (id: string) =>
+        `${API_URL}/api/operacoes/inventory-counts/${id}/complete`,
+
+      // Stock Movements (Movimentações de Estoque - Audit Trail)
+      stockMovements: `${API_URL}/api/operacoes/stock-movements`,
+    },
+    estoque: {
+      // Current Stock View
+      current: `${API_URL}/api/estoque/current`,
+      ingredientMovements: (id: string) => `${API_URL}/api/estoque/ingredients/${id}/movements`,
+      adjustStock: (id: string) => `${API_URL}/api/estoque/ingredients/${id}/adjust`,
+
+      // Draft Orders (Rascunhos)
+      draftOrders: `${API_URL}/api/estoque/draft-orders`,
+      draftOrder: (id: string) => `${API_URL}/api/estoque/draft-orders/${id}`,
+      finalizeDraft: (id: string) => `${API_URL}/api/estoque/draft-orders/${id}/finalize`,
+    },
   },
 };
