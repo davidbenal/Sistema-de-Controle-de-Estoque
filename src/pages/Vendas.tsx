@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -29,6 +30,7 @@ interface SalesUpload {
 }
 
 export function Vendas() {
+  const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [viewingImport, setViewingImport] = useState<any>(null);
   const [importHistory, setImportHistory] = useState<SalesUpload[]>([]);
@@ -211,7 +213,7 @@ export function Vendas() {
             </div>
 
             <div className="pt-4 border-t">
-              <Button variant="outline" className="w-full justify-between" onClick={() => toast.info('Configurações de mapeamento em breve')}>
+              <Button variant="outline" className="w-full justify-between" onClick={() => navigate('/mapeamentos')}>
                 <span>Configurar Mapeamento de Produtos</span>
                 <AlertCircle className="w-4 h-4 text-gray-400" />
               </Button>

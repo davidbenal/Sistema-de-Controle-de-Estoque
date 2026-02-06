@@ -38,7 +38,7 @@ interface DraftOrder {
 
 interface DraftOrderCardProps {
   draft: DraftOrder;
-  onEdit: (draftId: string) => void;
+  onEdit?: (draftId: string) => void;
   onFinalize: (draft: DraftOrder) => void;
   onDelete: (draftId: string) => void;
 }
@@ -82,9 +82,11 @@ export function DraftOrderCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(draft.id)}>
-                Editar Itens
-              </DropdownMenuItem>
+              {onEdit && (
+                <DropdownMenuItem onClick={() => onEdit(draft.id)}>
+                  Editar Itens
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => onFinalize(draft)}>
                 Finalizar Pedido
               </DropdownMenuItem>

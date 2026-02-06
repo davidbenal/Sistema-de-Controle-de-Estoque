@@ -1342,7 +1342,7 @@ export function Cadastros() {
                 <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                   <AlertCircle className="w-12 h-12 mb-4 text-gray-300" />
                   <p>Nenhum membro cadastrado ainda</p>
-                  <p className="text-sm mt-2">A funcionalidade de equipe será implementada em breve</p>
+                  <p className="text-sm mt-2">Clique em "Novo Membro" para adicionar</p>
                 </div>
               ) : viewMode === 'cards' ? (
                 <div className="grid gap-4 md:grid-cols-2">

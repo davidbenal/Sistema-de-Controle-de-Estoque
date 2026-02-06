@@ -139,7 +139,7 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { user_id } = request.query as { user_id?: string };
 
-      const drafts = await estoqueService.getUserDrafts(user_id || 'current-user');
+      const drafts = await estoqueService.getUserDrafts(user_id || 'anonymous');
 
       return { success: true, data: drafts };
     } catch (error: any) {

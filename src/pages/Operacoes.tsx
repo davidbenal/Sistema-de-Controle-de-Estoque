@@ -329,11 +329,6 @@ export function Operacoes() {
     }
   };
 
-  const handleEditDraft = (draftId: string) => {
-    // TODO: Implement edit functionality
-    toast.info('Funcionalidade de edição será implementada em breve');
-  };
-
   const handleFinalizeDraft = (draft: any) => {
     setSelectedDraft(draft);
     setShowFinalizeDraftModal(true);
@@ -490,23 +485,20 @@ export function Operacoes() {
     try {
       setIsStartingInventory(true);
 
-      // Calcular diferenças antes de enviar
-      const itemsWithDifferences = data.items.map((item: any) => ({
-        ingredient_id: item.ingredientId,
-        ingredient_name: item.ingredientName,
-        system_qty: item.systemQty,
-        counted_qty: item.countedQty,
-        difference: item.countedQty - item.systemQty,
-        unit: item.unit,
-        notes: item.notes,
-      }));
-
       const payload = {
-        count_type: data.countType,
-        storage_center: data.storageCenter,
-        counted_by: data.countedBy || user?.id || 'anonymous',
+        countDate: new Date().toISOString(),
+        countType: data.countType,
+        storageCenter: data.storageCenter,
+        countedBy: data.countedBy || user?.id || 'anonymous',
         notes: data.notes,
-        items: itemsWithDifferences,
+        items: data.items.map((item: any) => ({
+          ingredientId: item.ingredientId,
+          ingredientName: item.ingredientName,
+          systemQty: item.systemQty,
+          countedQty: item.countedQty,
+          unit: item.unit,
+          notes: item.notes,
+        })),
       };
 
       const response = await fetch(config.endpoints.operacoes.inventoryCounts, {
@@ -528,6 +520,28 @@ export function Operacoes() {
       toast.error('Erro de conexão');
     } finally {
       setIsStartingInventory(false);
+    }
+  };
+
+  const handleCompleteInventory = async (countId: string) => {
+    try {
+      const response = await fetch(config.endpoints.operacoes.completeInventoryCount(countId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvedBy: user?.id || 'anonymous' }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Contagem aprovada e estoque ajustado!');
+        loadInventoryCounts();
+        setViewingInventory(null);
+      } else {
+        toast.error(result.error || 'Erro ao completar contagem');
+      }
+    } catch (error) {
+      console.error('Erro ao completar inventário:', error);
+      toast.error('Erro de conexão');
     }
   };
 
@@ -683,7 +697,6 @@ export function Operacoes() {
                           <DraftOrderCard
                             key={draft.id}
                             draft={draft}
-                            onEdit={handleEditDraft}
                             onFinalize={handleFinalizeDraft}
                             onDelete={handleDeleteDraft}
                           />
@@ -901,18 +914,6 @@ export function Operacoes() {
                   }
                   setShowAddToOrderModal(true);
                 }}
-                onViewHistory={(ingredientId) => {
-                  // TODO: Implement movement history view
-                  toast.info('Histórico de movimentos será implementado');
-                }}
-                onAdjustStock={(ingredient) => {
-                  // TODO: Implement manual stock adjustment
-                  toast.info('Ajuste manual de estoque será implementado');
-                }}
-                onViewDetails={(ingredient) => {
-                  // TODO: Implement ingredient details view
-                  toast.info('Visualização de detalhes será implementada');
-                }}
               />
             </CardContent>
           </Card>
@@ -955,6 +956,7 @@ export function Operacoes() {
           <InventoryDetails
             data={viewingInventory}
             onClose={() => setViewingInventory(null)}
+            onComplete={handleCompleteInventory}
           />
         </DialogContent>
       </Dialog>
