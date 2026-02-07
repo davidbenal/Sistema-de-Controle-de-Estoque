@@ -107,6 +107,72 @@ export class DashboardService {
   }
 
   /**
+   * Retorna receita diária agrupada por data
+   */
+  async getReceitaDiaria(days: number = 7) {
+    try {
+      const now = new Date();
+      const startDate = new Date();
+      startDate.setDate(now.getDate() - days);
+      const prevStartDate = new Date();
+      prevStartDate.setDate(startDate.getDate() - days);
+
+      const startStr = startDate.toISOString().split('T')[0];
+      const prevStartStr = prevStartDate.toISOString().split('T')[0];
+
+      const snapshot = await this.fastify.db.collection('vendas')
+        .where('saleDate', '>=', prevStartStr)
+        .orderBy('saleDate', 'asc')
+        .get();
+
+      const vendas = snapshot.docs.map(doc => doc.data() as any);
+
+      const byDate: Record<string, { date: string; revenue: number; quantity: number }> = {};
+      let totalRevenue = 0;
+      let prevRevenue = 0;
+
+      for (const v of vendas) {
+        const date = v.saleDate || '';
+        const revenue = (v.unitPrice || 0) * (v.quantity || 0);
+
+        if (date >= startStr) {
+          totalRevenue += revenue;
+          if (!byDate[date]) {
+            byDate[date] = { date, revenue: 0, quantity: 0 };
+          }
+          byDate[date].revenue += revenue;
+          byDate[date].quantity += (v.quantity || 0);
+        } else if (date >= prevStartStr) {
+          prevRevenue += revenue;
+        }
+      }
+
+      const percentChange = prevRevenue > 0
+        ? ((totalRevenue - prevRevenue) / prevRevenue) * 100
+        : 0;
+
+      const data = Object.values(byDate)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(d => ({
+          ...d,
+          dateLabel: new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        }));
+
+      return {
+        success: true,
+        data,
+        totalRevenue,
+        prevRevenue,
+        percentChange,
+        totalQuantity: data.reduce((sum, d) => sum + d.quantity, 0),
+      };
+    } catch (error: any) {
+      this.fastify.log.error('Erro ao buscar receita diária:', error);
+      throw new Error(`Erro ao buscar receita diária: ${error.message}`);
+    }
+  }
+
+  /**
    * Retorna ingredientes abaixo do estoque mínimo
    */
   async getIngredientesAbaixoMinimo() {

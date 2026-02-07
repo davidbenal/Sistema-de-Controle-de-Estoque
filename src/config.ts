@@ -40,6 +40,17 @@ export const config = {
     dashboard: {
       resumo: `${API_URL}/api/dashboard/resumo`,
       ingredientesAbaixoMinimo: `${API_URL}/api/dashboard/ingredientes-abaixo-minimo`,
+      receitaDiaria: `${API_URL}/api/dashboard/receita-diaria`,
+    },
+    checklists: {
+      tasks: `${API_URL}/api/checklists/tasks`,
+      task: (id: string) => `${API_URL}/api/checklists/tasks/${id}`,
+      applyTemplate: `${API_URL}/api/checklists/tasks/apply-template`,
+      templates: `${API_URL}/api/checklists/templates`,
+    },
+    relatorios: {
+      vendasPorProduto: `${API_URL}/api/relatorios/vendas-por-produto`,
+      estoqueValor: `${API_URL}/api/relatorios/estoque-valor`,
     },
     operacoes: {
       // Purchases (Pedidos)

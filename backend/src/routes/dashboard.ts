@@ -22,6 +22,20 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /api/dashboard/receita-diaria
+   */
+  fastify.get('/receita-diaria', async (request, reply) => {
+    try {
+      const { days } = request.query as { days?: string };
+      const result = await dashboardService.getReceitaDiaria(days ? parseInt(days, 10) : 7);
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      fastify.log.error('Erro na rota GET /dashboard/receita-diaria:', error);
+      return reply.code(500).send({ success: false, error: error.message });
+    }
+  });
+
+  /**
    * GET /api/dashboard/ingredientes-abaixo-minimo
    * Retorna lista de ingredientes com estoque abaixo do mínimo
    */

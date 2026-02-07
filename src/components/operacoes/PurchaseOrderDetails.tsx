@@ -1,7 +1,6 @@
 import { Badge } from '../ui/badge';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { ingredients, suppliers } from '../../data/mockData';
 import { Calendar, CheckCircle2, Truck, DollarSign, FileText } from 'lucide-react';
 
 interface PurchaseOrderDetailsProps {
@@ -12,8 +11,9 @@ interface PurchaseOrderDetailsProps {
 export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProps) {
   if (!data) return null;
 
-  const supplier = suppliers.find(s => s.id === data.supplierId);
-  
+  const supplierName = data.supplier_name || data.supplierName || 'Fornecedor';
+  const supplierContact = data.supplier_contact || data.supplierContact || '';
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pendente': return 'bg-yellow-100 text-yellow-700';
@@ -44,8 +44,8 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
               <Truck className="h-5 w-5 text-gray-500" />
               <h3 className="font-semibold">Fornecedor</h3>
             </div>
-            <p className="text-lg font-medium">{supplier?.name}</p>
-            <p className="text-sm text-gray-500">{supplier?.contact}</p>
+            <p className="text-lg font-medium">{supplierName}</p>
+            <p className="text-sm text-gray-500">{supplierContact}</p>
           </CardContent>
         </Card>
 
@@ -88,11 +88,12 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
             </thead>
             <tbody className="divide-y">
               {data.items.map((item: any, idx: number) => {
-                const ing = ingredients.find(i => i.id === item.ingredientId);
+                const name = item.ingredient_name || item.ingredientName || 'Item desconhecido';
+                const unit = item.unit || '';
                 return (
                   <tr key={idx} className="bg-white">
-                    <td className="px-4 py-3 font-medium">{ing?.name || 'Item desconhecido'}</td>
-                    <td className="px-4 py-3 text-right">{item.quantity} {ing?.unit}</td>
+                    <td className="px-4 py-3 font-medium">{name}</td>
+                    <td className="px-4 py-3 text-right">{item.quantity} {unit}</td>
                     <td className="px-4 py-3 text-right">R$ {item.unitPrice.toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-medium">R$ {(item.quantity * item.unitPrice).toFixed(2)}</td>
                   </tr>

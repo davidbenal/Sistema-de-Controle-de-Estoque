@@ -105,6 +105,8 @@ import { cadastrosRoutes } from './routes/cadastros';
 import { mapeamentosRoutes } from './routes/mapeamentos';
 import { operacoesRoutes } from './routes/operacoes';
 import { estoqueRoutes } from './routes/estoque';
+import { checklistsRoutes } from './routes/checklists';
+import { relatoriosRoutes } from './routes/relatorios';
 
 // Register routes
 fastify.register(vendasRoutes, { prefix: '/api/vendas' });
@@ -114,6 +116,8 @@ fastify.register(cadastrosRoutes, { prefix: '/api/cadastros' });
 fastify.register(mapeamentosRoutes, { prefix: '/api/mapeamentos' });
 fastify.register(operacoesRoutes, { prefix: '/api/operacoes' });
 fastify.register(estoqueRoutes, { prefix: '/api/estoque' });
+fastify.register(checklistsRoutes, { prefix: '/api/checklists' });
+fastify.register(relatoriosRoutes, { prefix: '/api/relatorios' });
 
 // Start server
 const start = async () => {
