@@ -211,7 +211,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.code(401).send({ success: false, error: 'Nao autenticado' });
       }
 
-      const user = await resolveUser(fastify.db, request.authUser.uid);
+      const user = await resolveUser(fastify.db, request.authUser.uid, request.authUser.email);
       if (!user) {
         return reply.code(404).send({
           success: false,
