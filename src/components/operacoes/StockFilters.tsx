@@ -4,6 +4,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { useStorageCenters } from '../../hooks/useStorageCenters';
 
 export interface StockFilters {
   search: string;
@@ -26,10 +27,12 @@ export function StockFiltersComponent({
   suppliers,
   categories,
 }: StockFiltersProps) {
+  const { centers } = useStorageCenters();
+
   const handleFilterChange = (key: keyof StockFilters, value: string) => {
     onFiltersChange({
       ...filters,
-      [key]: value,
+      [key]: value === 'all' ? '' : value,
     });
   };
 
@@ -76,12 +79,12 @@ export function StockFiltersComponent({
         {/* Status */}
         <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
-          <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+          <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value)}>
             <SelectTrigger id="status">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="ok">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 bg-green-500 rounded-full" />
@@ -113,13 +116,13 @@ export function StockFiltersComponent({
         {/* Category */}
         <div className="space-y-2">
           <Label htmlFor="category">Categoria</Label>
-          <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+          <Select value={filters.category || 'all'} onValueChange={(value) => handleFilterChange('category', value)}>
             <SelectTrigger id="category">
               <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
-              {categories.map(cat => (
+              <SelectItem value="all">Todas</SelectItem>
+              {categories.filter(cat => cat).map(cat => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>
@@ -131,12 +134,12 @@ export function StockFiltersComponent({
         {/* Supplier */}
         <div className="space-y-2">
           <Label htmlFor="supplier">Fornecedor</Label>
-          <Select value={filters.supplier} onValueChange={(value) => handleFilterChange('supplier', value)}>
+          <Select value={filters.supplier || 'all'} onValueChange={(value) => handleFilterChange('supplier', value)}>
             <SelectTrigger id="supplier">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {suppliers.map(supplier => (
                 <SelectItem key={supplier.id} value={supplier.id}>
                   {supplier.name}
@@ -149,17 +152,15 @@ export function StockFiltersComponent({
         {/* Storage Center */}
         <div className="space-y-2">
           <Label htmlFor="storageCenter">Centro de Armazenamento</Label>
-          <Select value={filters.storageCenter} onValueChange={(value) => handleFilterChange('storageCenter', value)}>
+          <Select value={filters.storageCenter || 'all'} onValueChange={(value) => handleFilterChange('storageCenter', value)}>
             <SelectTrigger id="storageCenter">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
-              <SelectItem value="cozinha">Cozinha</SelectItem>
-              <SelectItem value="bar">Bar</SelectItem>
-              <SelectItem value="estoque-geral">Estoque Geral</SelectItem>
-              <SelectItem value="refrigerado">Refrigerado</SelectItem>
-              <SelectItem value="congelado">Congelado</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              {centers.map(c => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

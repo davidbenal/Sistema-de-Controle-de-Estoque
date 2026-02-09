@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table,
@@ -16,17 +16,28 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { ImportDetails } from '../components/vendas/ImportDetails';
+import { apiFetch } from '../lib/api';
 import { config } from '../config';
 
 interface SalesUpload {
   id: string;
   filename: string;
-  uploadedAt: { seconds: number };
+  uploadedAt: { seconds: number; _seconds?: number };
   status: 'processing' | 'completed' | 'failed';
   salesCreated?: number;
+  totalRevenue?: number;
   processingTimeMs?: number;
   errors?: any[];
   warnings?: any[];
+}
+
+interface MappingStats {
+  total: number;
+  needsReview: number;
+  highConfidence: number;
+  lowConfidence: number;
+  unmapped: number;
+  percentComplete: number;
 }
 
 export function Vendas() {
@@ -35,16 +46,35 @@ export function Vendas() {
   const [viewingImport, setViewingImport] = useState<any>(null);
   const [importHistory, setImportHistory] = useState<SalesUpload[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [mappingStats, setMappingStats] = useState<MappingStats | null>(null);
 
-  // Carregar histórico ao montar componente
+  // Carregar histórico e stats ao montar componente
   useEffect(() => {
     loadHistory();
+    loadMappingStats();
   }, []);
+
+  const loadMappingStats = async () => {
+    try {
+      const response = await apiFetch(config.endpoints.mapeamentos.stats);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.success) {
+        setMappingStats(data.stats);
+      }
+    } catch {
+      // Silenciar - endpoint pode não estar disponível
+    }
+  };
 
   const loadHistory = async () => {
     try {
       setIsLoadingHistory(true);
-      const response = await fetch(config.endpoints.vendas.historico);
+      const response = await apiFetch(config.endpoints.vendas.historico);
+      if (!response.ok) {
+        console.error('Erro HTTP ao carregar histórico:', response.status);
+        return;
+      }
       const data = await response.json();
 
       if (data.success) {
@@ -52,7 +82,7 @@ export function Vendas() {
       }
     } catch (error) {
       console.error('Erro ao carregar histórico:', error);
-      toast.error('Erro ao carregar histórico de uploads');
+      // Silenciar toast no carregamento inicial - backend pode não estar rodando
     } finally {
       setIsLoadingHistory(false);
     }
@@ -77,32 +107,43 @@ export function Vendas() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(config.endpoints.vendas.upload, {
-        method: 'POST',
-        body: formData,
-      });
+      let response: Response;
+      try {
+        response = await apiFetch(config.endpoints.vendas.upload, {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (networkError: any) {
+        toast.error('Erro de conexão com o servidor. Verifique se o backend está rodando na porta 3001.');
+        return;
+      }
 
-      const result = await response.json();
+      let result: any;
+      try {
+        result = await response.json();
+      } catch {
+        toast.error(`Servidor retornou resposta inválida (HTTP ${response.status}). Verifique os logs do backend.`);
+        return;
+      }
 
       if (response.ok && result.success) {
+        const salesCreated = result.processingResults?.update_stock?.salesCreated ?? result.salesCreated ?? 0;
+        const timeStr = result.processingTimeMs ? ` em ${(result.processingTimeMs / 1000).toFixed(1)}s` : '';
         toast.success(
-          `Upload concluído! ${result.processingResults?.update_stock?.salesCreated || 0} vendas registradas em ${(result.processingTimeMs / 1000).toFixed(1)}s`,
+          `Upload concluído! ${salesCreated} vendas registradas${timeStr}`,
           { duration: 5000 }
         );
 
-        // Mostrar warnings se houver
         if (result.warnings && result.warnings.length > 0) {
           result.warnings.slice(0, 3).forEach((warning: any) => {
             toast.warning(warning.message || JSON.stringify(warning), { duration: 8000 });
           });
         }
 
-        // Recarregar histórico
         await loadHistory();
       } else {
         toast.error(result.error || result.message || 'Erro ao processar arquivo');
 
-        // Mostrar detalhes do erro
         if (result.errors && result.errors.length > 0) {
           result.errors.slice(0, 3).forEach((error: any) => {
             toast.error(error.message || JSON.stringify(error), { duration: 10000 });
@@ -111,7 +152,7 @@ export function Vendas() {
       }
     } catch (error: any) {
       console.error('Erro no upload:', error);
-      toast.error(`Erro ao fazer upload: ${error.message}`);
+      toast.error(`Erro inesperado no upload: ${error.message}`);
     } finally {
       setIsUploading(false);
       // Limpar input para permitir reupload do mesmo arquivo
@@ -180,34 +221,70 @@ export function Vendas() {
             <CardDescription>Resumo da sincronização de dados</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-start gap-4 p-4 bg-green-50 rounded-lg">
-              <CheckCircle2 className="w-6 h-6 text-green-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-green-900">Sistema Operacional</h4>
-                <p className="text-sm text-green-700 mt-1">
-                  A última sincronização foi realizada com sucesso. Todos os produtos foram mapeados corretamente.
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const lastUpload = importHistory[0];
+              const hasUploads = importHistory.length > 0;
+              const lastOk = lastUpload?.status === 'completed';
+              const lastFailed = lastUpload?.status === 'failed';
+
+              if (!hasUploads) {
+                return (
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                    <AlertCircle className="w-6 h-6 text-gray-400 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-gray-700">Nenhuma importação realizada</h4>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Faça upload de um relatório Zig para começar a sincronizar dados de vendas.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className={`flex items-start gap-4 p-4 rounded-lg ${lastOk ? 'bg-green-50' : lastFailed ? 'bg-red-50' : 'bg-yellow-50'}`}>
+                  {lastOk ? <CheckCircle2 className="w-6 h-6 text-green-600 mt-0.5" /> : lastFailed ? <XCircle className="w-6 h-6 text-red-600 mt-0.5" /> : <RefreshCw className="w-6 h-6 text-yellow-600 mt-0.5 animate-spin" />}
+                  <div>
+                    <h4 className={`font-semibold ${lastOk ? 'text-green-900' : lastFailed ? 'text-red-900' : 'text-yellow-900'}`}>
+                      {lastOk ? 'Última importação: Sucesso' : lastFailed ? 'Última importação: Erro' : 'Processando...'}
+                    </h4>
+                    <p className={`text-sm mt-1 ${lastOk ? 'text-green-700' : lastFailed ? 'text-red-700' : 'text-yellow-700'}`}>
+                      {lastUpload.filename} — {lastUpload.salesCreated ?? 0} vendas
+                      {(lastUpload.totalRevenue ?? 0) > 0 && ` — R$ ${(lastUpload.totalRevenue ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">Produtos Mapeados</span>
-                  <span className="font-medium">98%</span>
+                  <span className="text-gray-500">Produtos Mapeados (Alta Confiança)</span>
+                  <span className="font-medium">
+                    {mappingStats ? `${mappingStats.highConfidence}/${mappingStats.total}` : '...'}
+                  </span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 w-[98%]"></div>
+                  <div
+                    className="h-full bg-green-500 transition-all"
+                    style={{ width: mappingStats && mappingStats.total > 0 ? `${(mappingStats.highConfidence / mappingStats.total) * 100}%` : '0%' }}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">Confiabilidade dos Dados</span>
-                  <span className="font-medium">100%</span>
+                  <span className="text-gray-500">Precisam Revisão</span>
+                  <span className="font-medium">
+                    {mappingStats ? `${mappingStats.needsReview}/${mappingStats.total}` : '...'}
+                  </span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-full"></div>
+                  <div
+                    className="h-full bg-yellow-500 transition-all"
+                    style={{ width: mappingStats && mappingStats.total > 0 ? `${(mappingStats.needsReview / mappingStats.total) * 100}%` : '0%' }}
+                  />
                 </div>
               </div>
             </div>
@@ -259,9 +336,12 @@ export function Vendas() {
                 </TableRow>
               ) : (
                 importHistory.map((item) => {
-                  const date = item.uploadedAt?.seconds
-                    ? new Date(item.uploadedAt.seconds * 1000).toLocaleString('pt-BR')
+                  const seconds = (item.uploadedAt as any)?.seconds ?? (item.uploadedAt as any)?._seconds;
+                  const date = seconds
+                    ? new Date(seconds * 1000).toLocaleString('pt-BR')
                     : 'N/A';
+
+                  const totalRevenue = (item as any).totalRevenue ?? 0;
 
                   return (
                     <TableRow
@@ -276,7 +356,11 @@ export function Vendas() {
                       </TableCell>
                       <TableCell>Sistema</TableCell>
                       <TableCell>{item.salesCreated || 0}</TableCell>
-                      <TableCell>-</TableCell>
+                      <TableCell>
+                        {totalRevenue > 0
+                          ? `R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                          : '-'}
+                      </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           item.status === 'completed'

@@ -1,5 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ChecklistsService } from '../services/checklists';
+import { resolveUser } from '../utils/resolveUser';
+import { logActivity } from '../utils/activityLogger';
 
 export async function checklistsRoutes(fastify: FastifyInstance) {
   const service = new ChecklistsService(fastify);
@@ -17,6 +19,11 @@ export async function checklistsRoutes(fastify: FastifyInstance) {
   fastify.post('/tasks', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = request.body as any;
+      // Override createdBy from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      if (authUser) {
+        data.createdBy = authUser.id;
+      }
       const result = await service.createTask(data);
       return reply.code(201).send(result);
     } catch (error: any) {
@@ -28,7 +35,28 @@ export async function checklistsRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       const data = request.body as any;
+      let authUser: any = null;
+      // Add completedBy from auth token when completing
+      if (data.completed === true) {
+        authUser = await resolveUser(fastify.db, request.authUser!.uid);
+        if (authUser) {
+          data.completedBy = authUser.id;
+        }
+      }
       const result = await service.updateTask(id, data);
+
+      // Fire-and-forget activity log when task is completed
+      if (data.completed === true) {
+        logActivity(fastify.db, {
+          action: 'task_completed',
+          actorId: authUser?.id || 'unknown',
+          actorName: authUser?.name || 'Unknown',
+          entityType: 'task',
+          entityId: id,
+          summary: `${authUser?.name || 'Usuario'} completou tarefa`,
+        });
+      }
+
       return reply.code(200).send(result);
     } catch (error: any) {
       const code = error.message?.includes('não encontrada') ? 404 : 400;
@@ -49,11 +77,14 @@ export async function checklistsRoutes(fastify: FastifyInstance) {
 
   fastify.post('/tasks/apply-template', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { templateId, userId, createdBy } = request.body as any;
+      const { templateId, userId } = request.body as any;
       if (!templateId || !userId) {
         return reply.code(400).send({ success: false, error: 'templateId e userId são obrigatórios' });
       }
-      const result = await service.applyTemplate(templateId, userId, createdBy || userId);
+      // Get createdBy from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const createdBy = authUser?.id || userId;
+      const result = await service.applyTemplate(templateId, userId, createdBy);
       return reply.code(201).send(result);
     } catch (error: any) {
       return reply.code(400).send({ success: false, error: error.message });

@@ -1,37 +1,72 @@
 import { Badge } from '../ui/badge';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { FileText, Calendar, User, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Package } from 'lucide-react';
 
 interface ImportDetailsProps {
   data: any;
   onClose: () => void;
 }
 
+function parseUploadDate(data: any): string {
+  if (data.uploadedAt?.seconds) {
+    return new Date(data.uploadedAt.seconds * 1000).toLocaleString('pt-BR');
+  }
+  if (data.uploadedAt?._seconds) {
+    return new Date(data.uploadedAt._seconds * 1000).toLocaleString('pt-BR');
+  }
+  if (typeof data.uploadedAt === 'string') {
+    return new Date(data.uploadedAt).toLocaleString('pt-BR');
+  }
+  return data.date || 'N/A';
+}
+
+function getStatusInfo(status: string): { label: string; variant: 'default' | 'destructive' | 'secondary'; className: string } {
+  switch (status) {
+    case 'completed':
+    case 'success':
+      return { label: 'Sucesso', variant: 'default', className: 'bg-green-600' };
+    case 'failed':
+    case 'error':
+      return { label: 'Erro', variant: 'destructive', className: '' };
+    case 'processing':
+      return { label: 'Processando', variant: 'secondary', className: 'bg-yellow-500 text-white' };
+    default:
+      return { label: status || 'Desconhecido', variant: 'secondary', className: '' };
+  }
+}
+
 export function ImportDetails({ data, onClose }: ImportDetailsProps) {
   if (!data) return null;
 
-  // Mock items data based on the import record
-  const mockItems = Array.from({ length: 5 }).map((_, i) => ({
-    product: `Produto Exemplo ${i + 1}`,
-    quantity: Math.floor(Math.random() * 20) + 1,
-    value: (Math.random() * 50 + 10).toFixed(2),
-    category: ['Bebidas', 'Comida', 'Sobremesa'][Math.floor(Math.random() * 3)]
-  }));
+  const dateStr = parseUploadDate(data);
+  const statusInfo = getStatusInfo(data.status);
+
+  const salesCreated = data.salesCreated ?? 0;
+  const processingTimeMs = data.processingTimeMs ?? 0;
+  const processingResults = data.processingResults || {};
+  const totalRows = processingResults.totalRows ?? 0;
+  const validRows = processingResults.validRows ?? 0;
+  const invalidRows = processingResults.invalidRows ?? 0;
+  const skippedRows = processingResults.skippedRows ?? 0;
+  const ingredientsUpdated = data.ingredientsUpdated ?? 0;
+
+  const errors = data.errors || [];
+  const warnings = data.warnings || [];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-gray-900">Importação #{data.id}</h2>
-            <Badge variant={data.status === 'success' ? 'default' : 'destructive'} className={data.status === 'success' ? 'bg-green-600' : ''}>
-              {data.status === 'success' ? 'Sucesso' : 'Erro'}
+            <h2 className="text-2xl font-bold text-gray-900">Detalhes da Importação</h2>
+            <Badge variant={statusInfo.variant} className={statusInfo.className}>
+              {statusInfo.label}
             </Badge>
           </div>
           <p className="text-gray-500 mt-1 flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            Processado em {data.date}
+            {dateStr}
           </p>
         </div>
         <Button variant="outline" onClick={onClose}>Fechar</Button>
@@ -44,18 +79,10 @@ export function ImportDetails({ data, onClose }: ImportDetailsProps) {
               <FileText className="h-5 w-5 text-gray-500" />
               <h3 className="font-semibold">Arquivo</h3>
             </div>
-            <p className="text-sm font-medium break-all">{data.filename}</p>
-            <p className="text-xs text-gray-500 mt-1">{data.records} registros processados</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 mb-2">
-              <User className="h-5 w-5 text-gray-500" />
-              <h3 className="font-semibold">Responsável</h3>
-            </div>
-            <p className="text-lg font-medium">{data.user}</p>
+            <p className="text-sm font-medium break-all">{data.filename || 'N/A'}</p>
+            {totalRows > 0 && (
+              <p className="text-xs text-gray-500 mt-1">{totalRows} linhas no arquivo</p>
+            )}
           </CardContent>
         </Card>
 
@@ -63,59 +90,120 @@ export function ImportDetails({ data, onClose }: ImportDetailsProps) {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <h3 className="font-semibold">Total Processado</h3>
+              <h3 className="font-semibold">Vendas Registradas</h3>
             </div>
-            <p className="text-2xl font-bold text-green-600">
-              R$ {data.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <p className="text-2xl font-bold text-green-600">{salesCreated}</p>
+            {ingredientsUpdated > 0 && (
+              <p className="text-xs text-gray-500 mt-1">{ingredientsUpdated} ingredientes atualizados</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="h-5 w-5 text-blue-500" />
+              <h3 className="font-semibold">Tempo de Processamento</h3>
+            </div>
+            <p className="text-2xl font-bold text-blue-600">
+              {processingTimeMs > 0 ? `${(processingTimeMs / 1000).toFixed(1)}s` : '-'}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {data.status === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
-          <div>
-            <h4 className="font-semibold text-red-900">Falha no Processamento</h4>
-            <p className="text-sm text-red-700 mt-1">
-              O arquivo contém colunas inválidas ou dados corrompidos na linha 45. Verifique a formatação e tente novamente.
-            </p>
+      {/* Resumo do processamento */}
+      {totalRows > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">Resumo do Processamento</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold">{totalRows}</p>
+              <p className="text-xs text-gray-500">Linhas no arquivo</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-green-700">{validRows}</p>
+              <p className="text-xs text-green-600">Válidas</p>
+            </div>
+            <div className={`rounded-lg p-3 text-center ${invalidRows > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+              <p className={`text-2xl font-bold ${invalidRows > 0 ? 'text-red-700' : ''}`}>{invalidRows}</p>
+              <p className={`text-xs ${invalidRows > 0 ? 'text-red-600' : 'text-gray-500'}`}>Inválidas</p>
+            </div>
+            <div className={`rounded-lg p-3 text-center ${skippedRows > 0 ? 'bg-yellow-50' : 'bg-gray-50'}`}>
+              <p className={`text-2xl font-bold ${skippedRows > 0 ? 'text-yellow-700' : ''}`}>{skippedRows}</p>
+              <p className={`text-xs ${skippedRows > 0 ? 'text-yellow-600' : 'text-gray-500'}`}>Ignoradas</p>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Resumo dos Itens (Amostra)</h3>
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-700 font-medium border-b">
-              <tr>
-                <th className="px-4 py-3">Produto</th>
-                <th className="px-4 py-3">Categoria</th>
-                <th className="px-4 py-3 text-right">Qtd.</th>
-                <th className="px-4 py-3 text-right">Valor Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {mockItems.map((item, idx) => (
-                <tr key={idx} className="bg-white hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{item.product}</td>
-                  <td className="px-4 py-3 text-gray-500">{item.category}</td>
-                  <td className="px-4 py-3 text-right">{item.quantity}</td>
-                  <td className="px-4 py-3 text-right">R$ {item.value}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-gray-50 border-t">
-              <tr>
-                <td colSpan={4} className="px-4 py-2 text-center text-xs text-gray-500">
-                  ... e mais {data.records > 5 ? data.records - 5 : 0} itens
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+      {/* Erros */}
+      {errors.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <XCircle className="w-5 h-5 text-red-500" />
+            Erros ({errors.length})
+          </h3>
+          <div className="space-y-2">
+            {errors.map((error: any, idx: number) => (
+              <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800 font-medium">
+                  {error.step && <span className="text-red-500">[{error.step}] </span>}
+                  {error.message || JSON.stringify(error)}
+                </p>
+                {error.details && Array.isArray(error.details) && error.details.length > 0 && (
+                  <ul className="mt-1 text-xs text-red-600 list-disc list-inside">
+                    {error.details.slice(0, 5).map((d: any, i: number) => (
+                      <li key={i}>{d.error || JSON.stringify(d)}</li>
+                    ))}
+                    {error.details.length > 5 && (
+                      <li>... e mais {error.details.length - 5} erros</li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-yellow-500" />
+            Avisos ({warnings.length})
+          </h3>
+          <div className="space-y-2">
+            {warnings.map((warning: any, idx: number) => (
+              <div key={idx} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  {warning.message || JSON.stringify(warning)}
+                </p>
+                {warning.skus && Array.isArray(warning.skus) && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    SKUs: {warning.skus.join(', ')}
+                  </p>
+                )}
+                {warning.ingredientName && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    <Package className="w-3 h-3 inline mr-1" />
+                    {warning.ingredientName}: {(warning.newStock ?? 0).toFixed(2)} {warning.unit || ''}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Estado vazio */}
+      {errors.length === 0 && warnings.length === 0 && totalRows === 0 && salesCreated === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>Nenhum detalhe disponível para esta importação</p>
+        </div>
+      )}
     </div>
   );
 }

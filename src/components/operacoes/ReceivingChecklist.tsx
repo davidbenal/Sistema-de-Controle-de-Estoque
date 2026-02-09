@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -13,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Check, X, AlertCircle } from 'lucide-react';
+import { useStorageCenters } from '../../hooks/useStorageCenters';
 
 interface ChecklistItem {
   ingredient_id: string;
@@ -51,7 +51,7 @@ export function ReceivingChecklist({
   onItemUpdate,
   readonly = false,
 }: ReceivingChecklistProps) {
-  const { user } = useAuth();
+  const { centers } = useStorageCenters();
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [formData, setFormData] = useState<{
     isReceived: boolean;
@@ -71,15 +71,27 @@ export function ReceivingChecklist({
     storageCenter: '',
   });
 
+  const parseFirestoreDate = (val: any): Date | undefined => {
+    if (!val) return undefined;
+    // Firestore Timestamp object
+    if (val.seconds || val._seconds) {
+      return new Date((val.seconds || val._seconds) * 1000);
+    }
+    // Already a Date or ISO string
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? undefined : d;
+  };
+
   const handleExpandItem = (index: number, item: ChecklistItem) => {
     setExpandedItem(index);
     // Pre-populate form with current values
+    // Default to "received" for unchecked items (most common case)
     setFormData({
-      isReceived: item.is_received,
+      isReceived: item.is_checked ? item.is_received : true,
       receivedQty: item.received_qty || item.ordered_qty,
       missingReason: item.missing_reason || '',
       notes: item.notes || '',
-      expiryDate: item.expiry_date ? new Date(item.expiry_date) : undefined,
+      expiryDate: parseFirestoreDate(item.expiry_date),
       batchNumber: item.batch_number || '',
       storageCenter: item.storage_center || '',
     });
@@ -94,7 +106,6 @@ export function ReceivingChecklist({
       expiryDate: formData.expiryDate ? formData.expiryDate.toISOString() : undefined,
       batchNumber: formData.batchNumber || undefined,
       storageCenter: formData.storageCenter,
-      userId: user?.id || 'anonymous',
     };
 
     await onItemUpdate(itemIndex, updateData);
@@ -180,7 +191,7 @@ export function ReceivingChecklist({
                         Pedido: {item.ordered_qty} {item.unit}
                       </p>
                       <p className="text-sm text-gray-500">
-                        R$ {item.unit_price.toFixed(2)}/{item.unit}
+                        R$ {(item.unit_price ?? 0).toFixed(2)}/{item.unit}
                       </p>
                     </div>
                   </div>
@@ -201,8 +212,18 @@ export function ReceivingChecklist({
                         </Badge>
                       )}
                       <span className="text-sm font-semibold text-gray-900">
-                        R$ {(item.received_qty * item.unit_price).toFixed(2)}
+                        R$ {((item.received_qty ?? 0) * (item.unit_price ?? 0)).toFixed(2)}
                       </span>
+                      {!readonly && expandedItem !== index && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleExpandItem(index, item)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          Editar
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <Button
@@ -341,11 +362,9 @@ export function ReceivingChecklist({
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="cozinha">Cozinha</SelectItem>
-                            <SelectItem value="bar">Bar</SelectItem>
-                            <SelectItem value="estoque-geral">Estoque Geral</SelectItem>
-                            <SelectItem value="refrigerado">Refrigerado</SelectItem>
-                            <SelectItem value="congelado">Congelado</SelectItem>
+                            {centers.map(c => (
+                              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

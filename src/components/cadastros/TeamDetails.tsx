@@ -2,14 +2,15 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Mail, Briefcase, Clock, ShieldCheck, CalendarCheck } from 'lucide-react';
+import { Mail, Briefcase, Clock, ShieldCheck, CalendarCheck, Send } from 'lucide-react';
 
 interface TeamDetailsProps {
   data: any;
   onEdit: () => void;
+  onResendInvite?: (email: string, name: string) => void;
 }
 
-export function TeamDetails({ data, onEdit }: TeamDetailsProps) {
+export function TeamDetails({ data, onEdit, onResendInvite }: TeamDetailsProps) {
   if (!data) return null;
 
   const getStatusBadge = (status: string) => {
@@ -49,7 +50,15 @@ export function TeamDetails({ data, onEdit }: TeamDetailsProps) {
             </div>
           </div>
         </div>
-        <Button onClick={onEdit}>Editar Perfil</Button>
+        <div className="flex gap-2">
+          {onResendInvite && data.email && (
+            <Button variant="outline" onClick={() => onResendInvite(data.email, data.name)}>
+              <Send className="w-4 h-4 mr-2" />
+              Re-enviar Convite
+            </Button>
+          )}
+          <Button onClick={onEdit}>Editar Perfil</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

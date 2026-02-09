@@ -202,6 +202,7 @@ def process_sales_upload(excel_file, upload_id):
 
     result['steps']['update_stock'] = {
         'salesCreated': stock_result.get('salesCreated', 0),
+        'totalRevenue': stock_result.get('totalRevenue', 0),
         'ingredientsUpdated': stock_result.get('ingredientsUpdated', 0),
         'stockDecrements': stock_result.get('stockDecrements', {})
     }
@@ -230,6 +231,7 @@ def process_sales_upload(excel_file, upload_id):
             'stockUpdated': True
         },
         'salesCreated': result['steps']['update_stock']['salesCreated'],
+        'totalRevenue': result['steps']['update_stock'].get('totalRevenue', 0),
         'ingredientsUpdated': result['steps']['update_stock']['ingredientsUpdated'],
         'errors': result['errors'],
         'warnings': result['warnings'],

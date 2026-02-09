@@ -21,8 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Plus, Search, Edit, Trash2, Package, Users, ChefHat, UserPlus, RefreshCw, AlertCircle, LayoutGrid, List } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, Users, ChefHat, UserPlus, RefreshCw, AlertCircle, LayoutGrid, List, Copy, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
 import { config } from '../config';
 import { DeleteConfirmDialog } from '../components/cadastros/DeleteConfirmDialog';
 import { SupplierForm } from '../components/cadastros/SupplierForm';
@@ -42,7 +43,7 @@ export function Cadastros() {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'insumos');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedRecipeCategory, setSelectedRecipeCategory] = useState('all');
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list');
 
   // Dados reais da API
   const [ingredients, setIngredients] = useState<any[]>([]);
@@ -68,6 +69,13 @@ export function Cadastros() {
   const [deletingTeamMember, setDeletingTeamMember] = useState<any>(null);
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
 
+  // Invite dialog state
+  const [inviteDialog, setInviteDialog] = useState<{ open: boolean; name: string; link: string }>({
+    open: false,
+    name: '',
+    link: '',
+  });
+
   // Ingredientes CRUD states
   const [showCreateIngredientDialog, setShowCreateIngredientDialog] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState<any>(null);
@@ -87,7 +95,7 @@ export function Cadastros() {
   const [viewingTeamMember, setViewingTeamMember] = useState<any>(null);
 
   // Related data for detail views
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [selectedSuppliers, setSelectedSuppliers] = useState<any[]>([]);
   const [supplierIngredients, setSupplierIngredients] = useState<any[]>([]);
 
   useEffect(() => {
@@ -106,6 +114,7 @@ export function Cadastros() {
         break;
       case 'fornecedores':
         loadSuppliers();
+        loadIngredients(); // Necessario para multi-select de ingredientes no fornecedor
         break;
       case 'fichas':
         loadRecipes();
@@ -119,11 +128,19 @@ export function Cadastros() {
   const loadIngredients = async () => {
     try {
       setIsLoadingIngredients(true);
-      const response = await fetch(config.endpoints.cadastros.ingredientes);
+      const response = await apiFetch(config.endpoints.cadastros.ingredientes);
       const data = await response.json();
 
       if (data.success) {
-        setIngredients(data.ingredientes || []);
+        // Normalize Firestore snake_case to camelCase for consistent access
+        const normalized = (data.ingredientes || []).map((i: any) => ({
+          ...i,
+          currentStock: i.current_stock ?? i.currentStock ?? 0,
+          minStock: i.min_stock ?? i.minStock ?? 0,
+          maxStock: i.max_stock ?? i.maxStock ?? 0,
+          storageCenter: i.storage_center ?? i.storageCenter ?? '',
+        }));
+        setIngredients(normalized);
       } else {
         toast.error('Erro ao carregar ingredientes');
       }
@@ -138,7 +155,7 @@ export function Cadastros() {
   const loadSuppliers = async () => {
     try {
       setIsLoadingSuppliers(true);
-      const response = await fetch(config.endpoints.cadastros.fornecedores);
+      const response = await apiFetch(config.endpoints.cadastros.fornecedores);
       const data = await response.json();
 
       if (data.success) {
@@ -157,7 +174,7 @@ export function Cadastros() {
   const loadRecipes = async () => {
     try {
       setIsLoadingRecipes(true);
-      const response = await fetch(config.endpoints.cadastros.fichas);
+      const response = await apiFetch(config.endpoints.cadastros.fichas);
       const data = await response.json();
 
       if (data.success) {
@@ -176,7 +193,7 @@ export function Cadastros() {
   const loadTeam = async () => {
     try {
       setIsLoadingTeam(true);
-      const response = await fetch(config.endpoints.cadastros.equipe);
+      const response = await apiFetch(config.endpoints.cadastros.equipe);
       const data = await response.json();
 
       if (data.success) {
@@ -195,7 +212,7 @@ export function Cadastros() {
   // Fornecedores CRUD handlers
   const handleCreateSupplier = async (data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.fornecedores, {
+      const response = await apiFetch(config.endpoints.cadastros.fornecedores, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -217,7 +234,7 @@ export function Cadastros() {
 
   const handleUpdateSupplier = async (id: string, data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.fornecedor(id), {
+      const response = await apiFetch(config.endpoints.cadastros.fornecedor(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -242,7 +259,7 @@ export function Cadastros() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(config.endpoints.cadastros.fornecedor(deletingSupplier.id), {
+      const response = await apiFetch(config.endpoints.cadastros.fornecedor(deletingSupplier.id), {
         method: 'DELETE',
       });
 
@@ -265,7 +282,7 @@ export function Cadastros() {
   // Equipe CRUD handlers
   const handleCreateTeamMember = async (data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.equipe, {
+      const response = await apiFetch(config.endpoints.cadastros.equipe, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -276,6 +293,15 @@ export function Cadastros() {
         toast.success('Membro adicionado com sucesso');
         loadTeam();
         setShowCreateTeamDialog(false);
+
+        // Show invite link dialog if available
+        if (result.inviteLink) {
+          setInviteDialog({
+            open: true,
+            name: data.name,
+            link: result.inviteLink,
+          });
+        }
       } else {
         toast.error(result.error || 'Erro ao adicionar membro');
       }
@@ -285,9 +311,33 @@ export function Cadastros() {
     }
   };
 
+  const handleResendInvite = async (email: string, name: string) => {
+    try {
+      const response = await apiFetch(config.endpoints.auth.resendInvite, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+      if (result.success && result.inviteLink) {
+        setInviteDialog({
+          open: true,
+          name,
+          link: result.inviteLink,
+        });
+      } else {
+        toast.error(result.error || 'Erro ao reenviar convite');
+      }
+    } catch (error) {
+      console.error('Erro ao reenviar convite:', error);
+      toast.error('Erro de conexão');
+    }
+  };
+
   const handleUpdateTeamMember = async (id: string, data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.membro(id), {
+      const response = await apiFetch(config.endpoints.cadastros.membro(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -312,7 +362,7 @@ export function Cadastros() {
 
     setIsDeletingTeam(true);
     try {
-      const response = await fetch(config.endpoints.cadastros.membro(deletingTeamMember.id), {
+      const response = await apiFetch(config.endpoints.cadastros.membro(deletingTeamMember.id), {
         method: 'DELETE',
       });
 
@@ -335,7 +385,7 @@ export function Cadastros() {
   // Ingredientes CRUD handlers
   const handleCreateIngredient = async (data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.ingredientes, {
+      const response = await apiFetch(config.endpoints.cadastros.ingredientes, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -357,7 +407,7 @@ export function Cadastros() {
 
   const handleUpdateIngredient = async (id: string, data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.ingrediente(id), {
+      const response = await apiFetch(config.endpoints.cadastros.ingrediente(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -382,7 +432,7 @@ export function Cadastros() {
 
     setIsDeletingIngredient(true);
     try {
-      const response = await fetch(config.endpoints.cadastros.ingrediente(deletingIngredient.id), {
+      const response = await apiFetch(config.endpoints.cadastros.ingrediente(deletingIngredient.id), {
         method: 'DELETE',
       });
 
@@ -405,7 +455,7 @@ export function Cadastros() {
   // Fichas Técnicas CRUD handlers
   const handleCreateRecipe = async (data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.fichasTecnicas, {
+      const response = await apiFetch(config.endpoints.cadastros.fichasTecnicas, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -427,7 +477,7 @@ export function Cadastros() {
 
   const handleUpdateRecipe = async (id: string, data: any) => {
     try {
-      const response = await fetch(config.endpoints.cadastros.fichaTecnica(id), {
+      const response = await apiFetch(config.endpoints.cadastros.fichaTecnica(id), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -452,7 +502,7 @@ export function Cadastros() {
 
     setIsDeletingRecipe(true);
     try {
-      const response = await fetch(config.endpoints.cadastros.fichaTecnica(deletingRecipe.id), {
+      const response = await apiFetch(config.endpoints.cadastros.fichaTecnica(deletingRecipe.id), {
         method: 'DELETE',
       });
 
@@ -476,28 +526,30 @@ export function Cadastros() {
   const handleViewIngredient = async (ingredient: any) => {
     setViewingIngredient(ingredient);
 
-    // Carregar fornecedor relacionado
-    if (ingredient.supplierId || ingredient.supplier_id) {
-      const supplierId = ingredient.supplierId || ingredient.supplier_id;
+    // Carregar fornecedores relacionados (supplier_ids array ou supplier_id legado)
+    const supplierIds: string[] = ingredient.supplier_ids || (ingredient.supplier_id ? [ingredient.supplier_id] : []);
+    if (supplierIds.length > 0) {
       try {
-        const response = await fetch(config.endpoints.cadastros.fornecedor(supplierId));
-        const result = await response.json();
-        if (result.success && result.data) {
-          setSelectedSupplier(result.data);
-        } else {
-          setSelectedSupplier(null);
-        }
+        const results = await Promise.all(
+          supplierIds.map(id => apiFetch(config.endpoints.cadastros.fornecedor(id)).then(r => r.json()))
+        );
+        const loaded = results
+          .filter(r => r.success && r.fornecedor)
+          .map(r => r.fornecedor);
+        setSelectedSuppliers(loaded);
       } catch (error) {
-        console.error('Erro ao carregar fornecedor:', error);
-        setSelectedSupplier(null);
+        console.error('Erro ao carregar fornecedores:', error);
+        setSelectedSuppliers([]);
       }
     } else {
-      setSelectedSupplier(null);
+      setSelectedSuppliers([]);
     }
   };
 
   const handleViewSupplier = (supplier: any) => {
-    const supplied = ingredients.filter(i => i.supplier_id === supplier.id);
+    const supplied = ingredients.filter(i =>
+      i.supplier_ids?.includes(supplier.id) || i.supplier_id === supplier.id
+    );
     setSupplierIngredients(supplied);
     setViewingSupplier(supplier);
   };
@@ -693,21 +745,21 @@ export function Cadastros() {
                           <div className="space-y-2 text-sm text-gray-600">
                             <div className="flex justify-between">
                               <span>Estoque Atual:</span>
-                              <span className="font-medium">{ingredient.currentStock || 0} {ingredient.unit}</span>
+                              <span className="font-medium">{(ingredient.currentStock ?? ingredient.current_stock ?? 0)} {ingredient.unit}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Estoque Mínimo:</span>
-                              <span className="font-medium">{ingredient.minStock || 0} {ingredient.unit}</span>
+                              <span className="font-medium">{(ingredient.minStock ?? ingredient.min_stock ?? 0)} {ingredient.unit}</span>
                             </div>
                             {ingredient.price && (
                               <div className="flex justify-between">
                                 <span>Preço:</span>
-                                <span className="font-medium">R$ {ingredient.price.toFixed(2)}</span>
+                                <span className="font-medium">R$ {Number(ingredient.price || 0).toFixed(2)}</span>
                               </div>
                             )}
                           </div>
 
-                          {ingredient.currentStock < ingredient.minStock && (
+                          {(ingredient.currentStock ?? ingredient.current_stock ?? 0) < (ingredient.minStock ?? ingredient.min_stock ?? 0) && (
                             <Badge variant="destructive" className="w-full justify-center">
                               Estoque Baixo
                             </Badge>
@@ -752,7 +804,7 @@ export function Cadastros() {
                     </thead>
                     <tbody>
                       {filteredIngredients.map((ingredient) => (
-                        <tr key={ingredient.id} className="border-b hover:bg-gray-50">
+                        <tr key={ingredient.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => handleViewIngredient(ingredient)}>
                           <td className="p-4 font-medium">{ingredient.name}</td>
                           <td className="p-4">
                             <Badge className={getCategoryColor(ingredient.category)}>
@@ -760,22 +812,22 @@ export function Cadastros() {
                             </Badge>
                           </td>
                           <td className="p-4 text-sm text-gray-600">
-                            {ingredient.currentStock || 0} {ingredient.unit}
+                            {(ingredient.currentStock ?? ingredient.current_stock ?? 0)} {ingredient.unit}
                           </td>
                           <td className="p-4 text-sm text-gray-600">
-                            {ingredient.minStock || 0} {ingredient.unit}
+                            {(ingredient.minStock ?? ingredient.min_stock ?? 0)} {ingredient.unit}
                           </td>
                           <td className="p-4 text-sm text-gray-600">
                             {ingredient.price ? `R$ ${ingredient.price.toFixed(2)}` : '-'}
                           </td>
                           <td className="p-4">
-                            {ingredient.currentStock < ingredient.minStock ? (
+                            {(ingredient.currentStock ?? ingredient.current_stock ?? 0) < (ingredient.minStock ?? ingredient.min_stock ?? 0) ? (
                               <Badge variant="destructive">Estoque Baixo</Badge>
                             ) : (
                               <Badge variant="outline" className="bg-green-50 text-green-700">OK</Badge>
                             )}
                           </td>
-                          <td className="p-4">
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"
@@ -979,14 +1031,14 @@ export function Cadastros() {
                     </thead>
                     <tbody>
                       {filteredSuppliers.map((supplier) => (
-                        <tr key={supplier.id} className="border-b hover:bg-gray-50">
+                        <tr key={supplier.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => handleViewSupplier(supplier)}>
                           <td className="p-4 font-medium">{supplier.name}</td>
                           <td className="p-4 text-sm text-gray-600">{supplier.contact || '-'}</td>
                           <td className="p-4 text-sm text-gray-600">
                             {supplier.delivery_time !== undefined ? `${supplier.delivery_time} dias` : '-'}
                           </td>
                           <td className="p-4 text-sm text-gray-600">{supplier.payment_terms || '-'}</td>
-                          <td className="p-4">
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2 justify-end">
                               <Button
                                 variant="outline"
@@ -1145,7 +1197,7 @@ export function Cadastros() {
                           <div className="text-sm text-gray-600 space-y-1">
                             <p>Porções: {recipe.portions || 1}</p>
                             {recipe.suggestedPrice && (
-                              <p>Preço sugerido: R$ {recipe.suggestedPrice.toFixed(2)}</p>
+                              <p>Preço sugerido: R$ {Number(recipe.suggestedPrice || 0).toFixed(2)}</p>
                             )}
                           </div>
                           {recipe.notes && (
@@ -1189,7 +1241,7 @@ export function Cadastros() {
                     </thead>
                     <tbody>
                       {filteredRecipes.map((recipe) => (
-                        <tr key={recipe.id} className="border-b hover:bg-gray-50">
+                        <tr key={recipe.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => handleViewRecipe(recipe)}>
                           <td className="p-4 font-medium">{recipe.name}</td>
                           <td className="p-4">
                             {recipe.category && (
@@ -1207,7 +1259,7 @@ export function Cadastros() {
                               <Badge variant="outline" className="bg-green-50 text-green-700">Completa</Badge>
                             )}
                           </td>
-                          <td className="p-4">
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2">
                               <Button
                                 variant="outline"
@@ -1386,6 +1438,14 @@ export function Cadastros() {
                               Editar
                             </Button>
                             <Button
+                              variant="outline"
+                              size="sm"
+                              title="Re-enviar Convite"
+                              onClick={() => handleResendInvite(member.email, member.name)}
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                            <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => setDeletingTeamMember(member)}
@@ -1412,7 +1472,7 @@ export function Cadastros() {
                     </thead>
                     <tbody>
                       {filteredTeam.map((member) => (
-                        <tr key={member.id} className="border-b hover:bg-gray-50">
+                        <tr key={member.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => handleViewTeamMember(member)}>
                           <td className="p-4 font-medium">{member.name}</td>
                           <td className="p-4 text-sm text-gray-600">{member.email || '-'}</td>
                           <td className="p-4">
@@ -1421,7 +1481,7 @@ export function Cadastros() {
                             )}
                           </td>
                           <td className="p-4 text-sm text-gray-600">{member.sector || '-'}</td>
-                          <td className="p-4">
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2 justify-end">
                               <Button
                                 variant="outline"
@@ -1432,11 +1492,19 @@ export function Cadastros() {
                                 Editar
                               </Button>
                               <Button
+                                variant="outline"
+                                size="sm"
+                                title="Re-enviar Convite"
+                                onClick={() => handleResendInvite(member.email, member.name)}
+                              >
+                                <Send className="w-4 h-4" />
+                              </Button>
+                              <Button
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => setDeletingTeamMember(member)}
                               >
-                                <Trash2 className="w-4 w-4" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </td>
@@ -1502,7 +1570,7 @@ export function Cadastros() {
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <IngredientDetails
             data={viewingIngredient}
-            supplier={selectedSupplier}
+            suppliers={selectedSuppliers}
             onClose={() => setViewingIngredient(null)}
             onEdit={() => {
               setEditingIngredient(viewingIngredient);
@@ -1518,9 +1586,26 @@ export function Cadastros() {
           <SupplierDetails
             data={viewingSupplier}
             suppliedIngredients={supplierIngredients}
+            allIngredients={ingredients}
             onEdit={() => {
               setEditingSupplier(viewingSupplier);
               setViewingSupplier(null);
+            }}
+            onIngredientsUpdated={() => {
+              loadIngredients();
+              // Refresh supplied ingredients for this supplier
+              const refreshSupplied = async () => {
+                const res = await apiFetch(config.endpoints.cadastros.ingredientes);
+                const data = await res.json();
+                if (data.success) {
+                  setIngredients(data.ingredientes || []);
+                  const supplied = (data.ingredientes || []).filter((i: any) =>
+                    i.supplier_ids?.includes(viewingSupplier?.id) || i.supplier_id === viewingSupplier?.id
+                  );
+                  setSupplierIngredients(supplied);
+                }
+              };
+              refreshSupplied();
             }}
           />
         </DialogContent>
@@ -1548,7 +1633,48 @@ export function Cadastros() {
               setEditingTeamMember(viewingTeamMember);
               setViewingTeamMember(null);
             }}
+            onResendInvite={(email: string, name: string) => {
+              setViewingTeamMember(null);
+              handleResendInvite(email, name);
+            }}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Link Dialog */}
+      <Dialog open={inviteDialog.open} onOpenChange={(open) => !open && setInviteDialog({ open: false, name: '', link: '' })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convite Criado!</DialogTitle>
+            <DialogDescription>
+              Compartilhe este link com {inviteDialog.name} para que possa definir sua senha e acessar o sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              readOnly
+              value={inviteDialog.link}
+              className="font-mono text-sm"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setInviteDialog({ open: false, name: '', link: '' })}
+              >
+                Fechar
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(inviteDialog.link);
+                  toast.success('Link copiado para a area de transferencia');
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar Link
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

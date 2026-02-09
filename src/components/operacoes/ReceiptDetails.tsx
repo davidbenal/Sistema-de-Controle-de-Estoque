@@ -66,16 +66,16 @@ export function ReceiptDetails({
   };
 
   const handleComplete = async () => {
-    // Validation
-    if (!data.invoice_photo_url) {
-      toast.error('Por favor, faça o upload da foto da nota fiscal antes de completar o recebimento');
-      return;
-    }
-
     const allChecked = data.checklist?.every((item: any) => item.is_checked);
     if (!allChecked) {
       toast.error('Por favor, confira todos os itens antes de completar o recebimento');
       return;
+    }
+
+    if (!data.invoice_photo_url) {
+      toast('Recebimento será completado sem foto da nota fiscal. Um alerta será criado para o gerente.', {
+        duration: 4000,
+      });
     }
 
     try {
@@ -120,7 +120,7 @@ export function ReceiptDetails({
 
   // Check if all items are checked
   const allItemsChecked = data.checklist?.every((item: any) => item.is_checked) || false;
-  const canComplete = !isCompleting && data.invoice_photo_url && allItemsChecked;
+  const canComplete = !isCompleting && allItemsChecked;
 
   return (
     <div className="space-y-6">
@@ -182,7 +182,7 @@ export function ReceiptDetails({
               Foto da Nota Fiscal
             </h3>
             <p className="text-sm text-gray-500 mt-1">
-              Obrigatório para completar o recebimento
+              Recomendado (opcional para completar o recebimento)
             </p>
           </div>
           {!isReadOnly && (

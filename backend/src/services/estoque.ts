@@ -48,16 +48,26 @@ export class EstoqueService {
   }
 
   async getCurrentStock(filters: StockFilters) {
-    // 1. Query ingredientes com filtros
-    let query: admin.firestore.Query = this.db.collection('ingredients')
+    // 1. Query ingredientes ativos (sem filtro de storage_center no Firestore
+    //    porque docs antigos podem ter o campo em camelCase)
+    const query: admin.firestore.Query = this.db.collection('ingredients')
       .where('status', '==', 'active');
 
-    if (filters.storageCenter) {
-      query = query.where('storage_center', '==', filters.storageCenter);
-    }
-
     const snapshot = await query.get();
-    const ingredients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Normalizar: garantir que storage_center sempre exista (snake_case prioritário)
+    let ingredients = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        storage_center: data.storage_center || data.storageCenter || 'sem-centro',
+      };
+    });
+
+    // Filtro de storage_center em código (cobre docs com campo em qualquer casing)
+    if (filters.storageCenter) {
+      ingredients = ingredients.filter((ing: any) => ing.storage_center === filters.storageCenter);
+    }
 
     // 2. Para cada ingrediente, enriquecer com dados calculados
     const enriched = await Promise.all(

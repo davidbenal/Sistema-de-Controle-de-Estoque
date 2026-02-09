@@ -24,11 +24,15 @@ def normalize_column_name(col):
         'Nome do Produto': 'productNameZig',
         'Categoria': 'category',
         'Valor Unitário': 'unitPrice',
+        'Valor Unitáro': 'unitPrice',  # Typo comum no export Zig
         'Quantidade': 'quantity',
+        'Valor de Desconto': 'discountValue',
         'Vendedor': 'seller',
         'Cliente': 'customer',
         'Data': 'saleDate',
-        'Bar': 'bar'
+        'Valor total': 'totalValue',
+        'Bar': 'bar',
+        'Data do Evento': 'eventDate',
     }
     return mapping.get(col, col)
 
@@ -128,7 +132,7 @@ def parse_sales_file(file_path):
                 if normalized_col == 'saleDate':
                     sale[normalized_col] = parse_date(value)
                 # Converter numéricos
-                elif normalized_col in ['unitPrice', 'quantity']:
+                elif normalized_col in ['unitPrice', 'quantity', 'totalValue', 'discountValue']:
                     sale[normalized_col] = float(value) if pd.notna(value) else 0
                 # String
                 else:

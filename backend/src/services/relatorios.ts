@@ -13,17 +13,21 @@ export class RelatoriosService {
       startDate.setDate(startDate.getDate() - days);
       const startStr = startDate.toISOString().split('T')[0];
 
-      const snapshot = await this.fastify.db.collection('vendas')
-        .where('saleDate', '>=', startStr)
-        .orderBy('saleDate', 'asc')
-        .get();
+      // Buscar todas as vendas e filtrar client-side para evitar composite index
+      const snapshot = await this.fastify.db.collection('vendas').get();
 
-      const vendas = snapshot.docs.map(doc => doc.data() as any);
+      const vendas = snapshot.docs
+        .map(doc => doc.data() as any)
+        .filter(v => {
+          const saleDate = v.saleDate || '';
+          return saleDate >= startStr;
+        });
 
       const byProduct: Record<string, { name: string; quantity: number; revenue: number }> = {};
 
       for (const v of vendas) {
-        const name = v.productName || v.sku || 'Produto desconhecido';
+        // Python pipeline grava productNameZig e recipeName, não productName
+        const name = v.recipeName || v.productNameZig || v.productName || v.sku || 'Produto desconhecido';
         const revenue = (v.unitPrice || 0) * (v.quantity || 0);
 
         if (!byProduct[name]) {

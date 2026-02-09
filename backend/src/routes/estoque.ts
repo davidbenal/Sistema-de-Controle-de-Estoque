@@ -1,5 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { EstoqueService } from '../services/estoque';
+import { resolveUser } from '../utils/resolveUser';
+import { logActivity } from '../utils/activityLogger';
 
 export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
   const estoqueService = new EstoqueService(fastify.db);
@@ -50,19 +52,33 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/ingredients/:id/adjust', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const { new_quantity, reason, notes, user_id } = request.body as {
+      const { new_quantity, reason, notes } = request.body as {
         new_quantity: number;
         reason: string;
         notes?: string;
-        user_id: string;
       };
+
+      // Get user from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const userId = authUser?.id || 'anonymous';
 
       const result = await estoqueService.adjustStock({
         ingredientId: id,
         newQuantity: new_quantity,
         reason,
         notes,
-        userId: user_id,
+        userId,
+      });
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'stock_adjusted',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'ingredient',
+        entityId: id,
+        summary: `${authUser?.name} ajustou estoque de ingrediente`,
+        details: { newQuantity: new_quantity, reason },
       });
 
       return { success: true, data: result };
@@ -84,7 +100,6 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
         unit,
         unit_price,
         notes,
-        user_id
       } = request.body as {
         supplier_id: string;
         supplier_name: string;
@@ -94,11 +109,14 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
         unit: string;
         unit_price?: number;
         notes?: string;
-        user_id: string;
       };
 
+      // Get user from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const userId = authUser?.id || 'anonymous';
+
       // Verificar se já existe rascunho para este fornecedor
-      const existingDraft = await estoqueService.findDraftBySupplier(supplier_id, user_id);
+      const existingDraft = await estoqueService.findDraftBySupplier(supplier_id, userId);
 
       if (existingDraft) {
         // Adicionar item ao rascunho existente
@@ -124,7 +142,7 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
             unit_price,
             notes,
           }],
-          created_by: user_id,
+          created_by: userId,
         });
         return { success: true, data: { draft_id: newDraft.id, action: 'created' } };
       }
@@ -137,9 +155,11 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/estoque/draft-orders - Listar rascunhos
   fastify.get('/draft-orders', async (request, reply) => {
     try {
-      const { user_id } = request.query as { user_id?: string };
+      // Get user from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const userId = authUser?.id || 'anonymous';
 
-      const drafts = await estoqueService.getUserDrafts(user_id || 'anonymous');
+      const drafts = await estoqueService.getUserDrafts(userId);
 
       return { success: true, data: drafts };
     } catch (error: any) {
@@ -181,21 +201,35 @@ export const estoqueRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/draft-orders/:id/finalize', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const { order_date, expected_delivery, notes, user_id, items } = request.body as {
+      const { order_date, expected_delivery, notes, items } = request.body as {
         order_date: string;
         expected_delivery: string;
         notes?: string;
-        user_id: string;
         items?: any[];
       };
+
+      // Get user from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const userId = authUser?.id || 'anonymous';
 
       const result = await estoqueService.finalizeDraft({
         draftId: id,
         orderDate: order_date,
         expectedDelivery: expected_delivery,
         notes,
-        userId: user_id,
+        userId,
         items,
+      });
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'draft_finalized',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'draft_order',
+        entityId: id,
+        summary: `${authUser?.name} finalizou rascunho de pedido`,
+        details: { purchaseId: result.purchaseId, receivingId: result.receivingId },
       });
 
       return {

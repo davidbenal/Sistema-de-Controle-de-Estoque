@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -11,13 +12,13 @@ import {
   DollarSign,
   Package,
   CalendarDays,
-  UtensilsCrossed,
   AlertOctagon,
   ClipboardList,
   Truck,
   CheckCircle2,
   Clock,
   RefreshCw,
+  User,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import {
@@ -48,22 +49,30 @@ function ManagerDashboard() {
   const [percentChange, setPercentChange] = useState(0);
   const [alertas, setAlertas] = useState<any[]>([]);
   const [pedidosPendentes, setPedidosPendentes] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  const safeFetch = async (url: string) => {
+    try {
+      const res = await apiFetch(url);
+      return await res.json();
+    } catch (e) {
+      console.error('Fetch failed:', url, e);
+      return { success: false };
+    }
+  };
+
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [receitaRes, alertasRes, pedidosRes] = await Promise.all([
-        fetch(config.endpoints.dashboard.receitaDiaria),
-        fetch(config.endpoints.alertas.list + '?status=pending'),
-        fetch(config.endpoints.operacoes.purchases + '?status=pending'),
-      ]);
-
-      const [receitaData, alertasData, pedidosData] = await Promise.all([
-        receitaRes.json(), alertasRes.json(), pedidosRes.json(),
+      const [receitaData, alertasData, pedidosData, activityData] = await Promise.all([
+        safeFetch(config.endpoints.dashboard.receitaDiaria),
+        safeFetch(config.endpoints.alertas.list + '?status=pending'),
+        safeFetch(config.endpoints.operacoes.purchases + '?status=pending'),
+        safeFetch(config.endpoints.activity.list + '?limit=10'),
       ]);
 
       if (receitaData.success) {
@@ -77,6 +86,7 @@ function ManagerDashboard() {
       }
       if (alertasData.success) setAlertas(alertasData.alertas || []);
       if (pedidosData.success) setPedidosPendentes(pedidosData.purchases || []);
+      if (activityData?.success) setActivities(activityData.activities || []);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
       toast.error('Erro ao carregar dados do dashboard');
@@ -162,22 +172,24 @@ function ManagerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="opacity-60">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Desperdicio (Est.)</p>
-                <p className="text-2xl font-bold mt-1 text-gray-400">-</p>
+        <Link to="/operacoes?tab=estoque&action=inventory">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Inventario</p>
+                  <p className="text-2xl font-bold mt-1 text-purple-600">Conferir</p>
+                </div>
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
               </div>
-              <div className="p-2 bg-red-50 text-red-300 rounded-lg">
-                <UtensilsCrossed className="w-5 h-5" />
+              <div className="mt-4 text-sm text-purple-600">
+                Iniciar contagem fisica
               </div>
-            </div>
-            <div className="mt-4 text-sm text-gray-400">
-              Modulo em implementacao
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
 
         <Card>
           <CardContent className="p-6">
@@ -294,6 +306,37 @@ function ManagerDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-gray-500" />
+                Atividade Recente
+              </CardTitle>
+              <CardDescription>Ultimas acoes da equipe</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                {activities.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Nenhuma atividade registrada</p>
+                ) : (
+                  activities.map((act: any) => (
+                    <div key={act.id} className="flex gap-3 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                      <div className="p-2 rounded-full bg-gray-100 text-gray-500 shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-900 truncate">{act.summary}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {parseDate(act.created_at)?.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) || ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
@@ -311,17 +354,23 @@ function OperationsDashboard() {
     loadData();
   }, []);
 
+  const safeFetch = async (url: string) => {
+    try {
+      const res = await apiFetch(url);
+      return await res.json();
+    } catch (e) {
+      console.error('Fetch failed:', url, e);
+      return { success: false };
+    }
+  };
+
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [alertasRes, pedidosRes, tasksRes] = await Promise.all([
-        fetch(config.endpoints.alertas.list + '?status=pending'),
-        fetch(config.endpoints.operacoes.purchases + '?status=pending'),
-        fetch(config.endpoints.checklists.tasks + '?assignedTo=' + (user?.id || '') + '&completed=false'),
-      ]);
-
       const [alertasData, pedidosData, tasksData] = await Promise.all([
-        alertasRes.json(), pedidosRes.json(), tasksRes.json(),
+        safeFetch(config.endpoints.alertas.list + '?status=pending'),
+        safeFetch(config.endpoints.operacoes.purchases + '?status=pending'),
+        safeFetch(config.endpoints.checklists.tasks + '?assignedTo=' + (user?.id || '') + '&completed=false'),
       ]);
 
       if (alertasData.success) setAlertas(alertasData.alertas || []);
@@ -363,7 +412,7 @@ function OperationsDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -421,6 +470,27 @@ function OperationsDashboard() {
               <Link to="/dashboard">
                 <Button variant="outline" size="sm" className={`w-full bg-white ${alertas.length > 0 ? 'hover:bg-red-50 text-red-700 border-red-200' : 'hover:bg-green-50 text-green-700 border-green-200'}`}>
                   Ver Detalhes
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-purple-700">Inventario</p>
+                <p className="text-3xl font-bold mt-1 text-purple-900">Conferir</p>
+              </div>
+              <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+                <ClipboardList className="w-6 h-6" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <Link to="/operacoes?tab=estoque&action=inventory">
+                <Button variant="outline" size="sm" className="w-full bg-white hover:bg-purple-50 text-purple-700 border-purple-200">
+                  Contagem Fisica
                 </Button>
               </Link>
             </div>

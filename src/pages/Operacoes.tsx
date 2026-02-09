@@ -17,15 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 import {
   Plus,
   ShoppingCart,
   PackageCheck,
   ClipboardCheck,
   Loader2,
+  AlertTriangle,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { config } from '../config';
+import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { PurchaseOrderDetails } from '../components/operacoes/PurchaseOrderDetails';
 import { ReceiptDetails } from '../components/operacoes/ReceiptDetails';
@@ -38,9 +44,11 @@ import { AddToOrderModal, AddToOrderData } from '../components/operacoes/AddToOr
 import { DraftCartWidget } from '../components/operacoes/DraftCartWidget';
 import { DraftOrderCard } from '../components/operacoes/DraftOrderCard';
 import { FinalizeDraftModal, FinalizationData } from '../components/operacoes/FinalizeDraftModal';
+import { useStorageCenters } from '../hooks/useStorageCenters';
 
 export function Operacoes() {
   const { user } = useAuth();
+  const { getLabel: getCenterLabel, refetch: refetchCenters } = useStorageCenters();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSupplier, setSelectedSupplier] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -97,10 +105,41 @@ export function Operacoes() {
   const [selectedDraft, setSelectedDraft] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all'); // all, draft, pending, received
 
+  // Filter purchases by statusFilter (client-side)
+  const filteredPurchases = statusFilter === 'all' || statusFilter === 'draft'
+    ? purchases
+    : purchases.filter(p => {
+        if (statusFilter === 'pending') return p.status === 'pending';
+        if (statusFilter === 'received') return p.status === 'completed' || p.status === 'received';
+        return true;
+      });
+
+  // Stock adjustment dialog state
+  const [adjustingIngredient, setAdjustingIngredient] = useState<any>(null);
+  const [adjustNewQty, setAdjustNewQty] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const [adjustNotes, setAdjustNotes] = useState('');
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
+  // New storage center dialog state
+  const [showAddCenterDialog, setShowAddCenterDialog] = useState(false);
+  const [newCenterLabel, setNewCenterLabel] = useState('');
+  const [newCenterValue, setNewCenterValue] = useState('');
+  const [isCreatingCenter, setIsCreatingCenter] = useState(false);
+
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab) {
       setActiveTab(tab);
+    }
+
+    if (searchParams.get('action') === 'inventory') {
+      // Auto-open inventory count dialog; small delay to let tab switch and data load start
+      setTimeout(() => setShowStartInventoryDialog(true), 300);
+      // Clear action param from URL to prevent re-triggering
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('action');
+      setSearchParams(newParams, { replace: true });
     }
   }, [searchParams]);
 
@@ -117,6 +156,7 @@ export function Operacoes() {
       loadReceivings();
     } else if (activeTab === 'estoque') {
       loadCurrentStock();
+      loadInventoryCounts();
       loadDraftOrders(); // Load drafts to show widget count
     }
   }, [activeTab, stockFilters]);
@@ -124,7 +164,7 @@ export function Operacoes() {
   const loadSuppliers = async () => {
     try {
       setIsLoadingSuppliers(true);
-      const response = await fetch(config.endpoints.cadastros.fornecedores);
+      const response = await apiFetch(config.endpoints.cadastros.fornecedores);
       const result = await response.json();
       if (result.success) {
         setSuppliers(result.fornecedores || []); // API retorna "fornecedores", não "data"
@@ -140,7 +180,7 @@ export function Operacoes() {
   const loadIngredients = async () => {
     try {
       setIsLoadingIngredients(true);
-      const response = await fetch(config.endpoints.cadastros.ingredientes);
+      const response = await apiFetch(config.endpoints.cadastros.ingredientes);
       const result = await response.json();
       if (result.success) {
         setIngredients(result.ingredientes || []);
@@ -163,7 +203,7 @@ export function Operacoes() {
       if (stockFilters.supplier) params.append('supplier_id', stockFilters.supplier);
 
       const url = `${config.endpoints.estoque.current}?${params.toString()}`;
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const result = await response.json();
 
       if (result.success) {
@@ -194,7 +234,7 @@ export function Operacoes() {
       if (selectedSupplier !== 'all') params.append('supplierId', selectedSupplier);
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
 
-      const response = await fetch(`${config.endpoints.operacoes.purchases}?${params}`);
+      const response = await apiFetch(`${config.endpoints.operacoes.purchases}?${params}`);
       const result = await response.json();
       if (result.success) {
         setPurchases(result.purchases || []);
@@ -214,7 +254,7 @@ export function Operacoes() {
       if (selectedSupplier !== 'all') params.append('supplierId', selectedSupplier);
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
 
-      const response = await fetch(`${config.endpoints.operacoes.receivings}?${params}`);
+      const response = await apiFetch(`${config.endpoints.operacoes.receivings}?${params}`);
       const result = await response.json();
       if (result.success) {
         setReceivings(result.receivings || []);
@@ -233,10 +273,10 @@ export function Operacoes() {
       const params = new URLSearchParams();
       if (selectedCenter !== 'all') params.append('storageCenter', selectedCenter);
 
-      const response = await fetch(`${config.endpoints.operacoes.inventoryCounts}?${params}`);
+      const response = await apiFetch(`${config.endpoints.operacoes.inventoryCounts}?${params}`);
       const result = await response.json();
       if (result.success) {
-        setInventoryCounts(result.data || []);
+        setInventoryCounts(result.inventoryCounts || []);
       }
     } catch (error) {
       console.error('Erro ao carregar inventário:', error);
@@ -249,10 +289,7 @@ export function Operacoes() {
   const loadDraftOrders = async () => {
     try {
       setIsLoadingDrafts(true);
-      const params = new URLSearchParams();
-      params.append('user_id', user?.id || 'anonymous'); // TODO: Get from auth context
-
-      const response = await fetch(`${config.endpoints.estoque.draftOrders}?${params}`);
+      const response = await apiFetch(config.endpoints.estoque.draftOrders);
       const result = await response.json();
       if (result.success) {
         setDraftOrders(result.data || []);
@@ -275,7 +312,6 @@ export function Operacoes() {
         ingredient_name: data.ingredientName,
         quantity: data.quantity,
         unit: data.unit,
-        user_id: user?.id || 'anonymous', // TODO: Get from auth context
       };
 
       // Adicionar campos opcionais somente se tiverem valor
@@ -286,7 +322,7 @@ export function Operacoes() {
         payload.notes = data.notes;
       }
 
-      const response = await fetch(config.endpoints.estoque.draftOrders, {
+      const response = await apiFetch(config.endpoints.estoque.draftOrders, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -312,7 +348,7 @@ export function Operacoes() {
     }
 
     try {
-      const response = await fetch(config.endpoints.estoque.draftOrder(draftId), {
+      const response = await apiFetch(config.endpoints.estoque.draftOrder(draftId), {
         method: 'DELETE',
       });
 
@@ -336,7 +372,7 @@ export function Operacoes() {
 
   const handleConfirmFinalization = async (data: FinalizationData) => {
     try {
-      const response = await fetch(config.endpoints.estoque.finalizeDraft(data.draftId), {
+      const response = await apiFetch(config.endpoints.estoque.finalizeDraft(data.draftId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -344,7 +380,6 @@ export function Operacoes() {
           expected_delivery: data.expectedDelivery,
           notes: data.notes,
           items: data.items, // Enviar items atualizados com preços
-          user_id: user?.id || 'anonymous', // TODO: Get from auth context
         }),
       });
 
@@ -365,6 +400,86 @@ export function Operacoes() {
     }
   };
 
+  const handleCreateStorageCenter = async () => {
+    if (!newCenterLabel.trim() || !newCenterValue.trim()) {
+      toast.error('Preencha nome e identificador');
+      return;
+    }
+    try {
+      setIsCreatingCenter(true);
+      const response = await apiFetch(config.endpoints.cadastros.storageCenters, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newCenterValue.trim(), label: newCenterLabel.trim() }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Centro de armazenamento criado!');
+        setShowAddCenterDialog(false);
+        setNewCenterLabel('');
+        setNewCenterValue('');
+        refetchCenters();
+      } else {
+        toast.error(result.error || 'Erro ao criar centro');
+      }
+    } catch (error) {
+      console.error('Erro ao criar centro:', error);
+      toast.error('Erro de conexão');
+    } finally {
+      setIsCreatingCenter(false);
+    }
+  };
+
+  const handleOpenAdjustStock = (ingredient: any) => {
+    setAdjustingIngredient(ingredient);
+    setAdjustNewQty(String(ingredient.current_stock || 0));
+    setAdjustReason('');
+    setAdjustNotes('');
+  };
+
+  const handleConfirmAdjustStock = async () => {
+    if (!adjustingIngredient) return;
+    const qty = parseFloat(adjustNewQty);
+    if (isNaN(qty) || qty < 0) {
+      toast.error('Quantidade inválida');
+      return;
+    }
+    if (!adjustReason.trim()) {
+      toast.error('Informe o motivo do ajuste');
+      return;
+    }
+
+    try {
+      setIsAdjusting(true);
+      const response = await apiFetch(
+        config.endpoints.estoque.adjustStock(adjustingIngredient.id),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            new_quantity: qty,
+            reason: adjustReason.trim(),
+            notes: adjustNotes.trim() || undefined,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Estoque ajustado com sucesso!');
+        setAdjustingIngredient(null);
+        loadCurrentStock();
+      } else {
+        toast.error(result.error || 'Erro ao ajustar estoque');
+      }
+    } catch (error) {
+      console.error('Erro ao ajustar estoque:', error);
+      toast.error('Erro de conexão');
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setSearchParams({ tab: value });
@@ -372,7 +487,7 @@ export function Operacoes() {
 
   const handleChecklistItemUpdate = async (receivingId: string, itemIndex: number, data: any) => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         config.endpoints.operacoes.updateChecklistItem(receivingId, itemIndex),
         {
           method: 'PUT',
@@ -400,7 +515,7 @@ export function Operacoes() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(
+      const response = await apiFetch(
         config.endpoints.operacoes.uploadReceivingPhoto(receivingId),
         {
           method: 'POST',
@@ -427,13 +542,12 @@ export function Operacoes() {
 
   const handleCompleteReceiving = async (receivingId: string, generalNotes?: string) => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         config.endpoints.operacoes.completeReceiving(receivingId),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user?.id || 'anonymous', // TODO: Get from auth context
             generalNotes,
           }),
         }
@@ -456,13 +570,10 @@ export function Operacoes() {
   const handleCreateOrder = async (data: any) => {
     try {
       setIsCreatingOrder(true);
-      const response = await fetch(config.endpoints.operacoes.purchases, {
+      const response = await apiFetch(config.endpoints.operacoes.purchases, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          createdBy: user?.id || 'anonymous', // TODO: Get from auth context
-        }),
+        body: JSON.stringify(data),
       });
       const result = await response.json();
       if (result.success) {
@@ -489,7 +600,6 @@ export function Operacoes() {
         countDate: new Date().toISOString(),
         countType: data.countType,
         storageCenter: data.storageCenter,
-        countedBy: data.countedBy || user?.id || 'anonymous',
         notes: data.notes,
         items: data.items.map((item: any) => ({
           ingredientId: item.ingredientId,
@@ -501,7 +611,7 @@ export function Operacoes() {
         })),
       };
 
-      const response = await fetch(config.endpoints.operacoes.inventoryCounts, {
+      const response = await apiFetch(config.endpoints.operacoes.inventoryCounts, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -509,8 +619,16 @@ export function Operacoes() {
 
       const result = await response.json();
       if (result.success) {
-        toast.success('Contagem de inventário iniciada com sucesso!');
+        const alertMsg = result.alertsCreated > 0
+          ? ` ${result.alertsCreated} alerta(s) criado(s) para divergências.`
+          : '';
+        const taskMsg = result.tasksCreated > 0
+          ? ` Tarefa de re-conferência criada.`
+          : '';
+        toast.success(`Estoque ajustado com sucesso! ${result.adjustedCount || 0} item(ns) atualizado(s).${alertMsg}${taskMsg}`);
         loadInventoryCounts();
+        loadCurrentStock();
+        loadIngredients();
         setShowStartInventoryDialog(false);
       } else {
         toast.error(result.error || 'Erro ao iniciar contagem');
@@ -525,10 +643,10 @@ export function Operacoes() {
 
   const handleCompleteInventory = async (countId: string) => {
     try {
-      const response = await fetch(config.endpoints.operacoes.completeInventoryCount(countId), {
+      const response = await apiFetch(config.endpoints.operacoes.completeInventoryCount(countId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approvedBy: user?.id || 'anonymous' }),
+        body: JSON.stringify({}),
       });
 
       const result = await response.json();
@@ -547,7 +665,7 @@ export function Operacoes() {
 
   const loadSingleReceiving = async (receivingId: string) => {
     try {
-      const response = await fetch(config.endpoints.operacoes.receiving(receivingId));
+      const response = await apiFetch(config.endpoints.operacoes.receiving(receivingId));
       const result = await response.json();
       if (result.success && result.data) {
         setViewingReceipt(result.data);
@@ -627,8 +745,8 @@ export function Operacoes() {
                     {statusFilter === 'draft'
                       ? `${draftOrders.length} rascunhos`
                       : statusFilter === 'all'
-                      ? `${purchases.length} pedidos • ${draftOrders.length} rascunhos`
-                      : `${purchases.length} pedidos registrados`}
+                      ? `${filteredPurchases.length} pedidos • ${draftOrders.length} rascunhos`
+                      : `${filteredPurchases.length} pedidos registrados`}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -719,14 +837,14 @@ export function Operacoes() {
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
-                  ) : purchases.length === 0 ? (
+                  ) : filteredPurchases.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                       <p>Nenhum pedido encontrado</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {purchases.map((order) => (
+                      {filteredPurchases.map((order) => (
                         <div
                           key={order.id}
                           className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -849,9 +967,9 @@ export function Operacoes() {
                               Recebido: R$ {receipt.received_total_value?.toFixed(2) || '0.00'}
                             </span>
                           </div>
-                          {receipt.adjustment_value > 0 && (
+                          {(receipt.adjustment_value ?? 0) > 0 && (
                             <div className="mt-2 text-sm text-red-600">
-                              Ajuste: -R$ {receipt.adjustment_value.toFixed(2)}
+                              Ajuste: -R$ {(receipt.adjustment_value ?? 0).toFixed(2)}
                             </div>
                           )}
                         </div>
@@ -876,6 +994,13 @@ export function Operacoes() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddCenterDialog(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Centro
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => setShowStartInventoryDialog(true)}
@@ -908,13 +1033,89 @@ export function Operacoes() {
                 isLoading={isLoadingStock}
                 onAddToOrder={(ingredient) => {
                   setSelectedIngredient(ingredient);
-                  // Garantir que fornecedores estejam carregados
                   if (suppliers.length === 0) {
                     loadSuppliers();
                   }
                   setShowAddToOrderModal(true);
                 }}
+                onAdjustStock={handleOpenAdjustStock}
               />
+
+              {/* Histórico de Contagens */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-3">Histórico de Contagens</h3>
+                {isLoadingInventory ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : inventoryCounts.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">Nenhuma contagem realizada</p>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Data</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Centro</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Itens</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Diferenças</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Status</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inventoryCounts.map((count: any) => {
+                          const countDate = count.count_date?._seconds
+                            ? new Date(count.count_date._seconds * 1000)
+                            : count.count_date?.toDate ? count.count_date.toDate()
+                            : new Date(count.count_date);
+                          const centerLabel = getCenterLabel(count.storage_center);
+                          const itemCount = count.items?.length || 0;
+                          const diffCount = count.items?.filter((i: any) => i.difference !== 0).length || 0;
+
+                          return (
+                            <tr
+                              key={count.id}
+                              className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => setViewingInventory(count)}
+                            >
+                              <td className="px-3 py-2">
+                                {countDate.toLocaleDateString('pt-BR')}
+                              </td>
+                              <td className="px-3 py-2">{centerLabel}</td>
+                              <td className="px-3 py-2 text-center">{itemCount}</td>
+                              <td className="px-3 py-2 text-center">
+                                {diffCount > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-orange-600">
+                                    <AlertTriangle className="h-3.5 w-3.5" />
+                                    {diffCount}
+                                  </span>
+                                ) : (
+                                  <span className="text-green-600">0</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <Badge variant={count.status === 'completed' ? 'default' : 'secondary'}>
+                                  {count.status === 'completed' ? 'Concluída' : count.status}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); setViewingInventory(count); }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -956,7 +1157,6 @@ export function Operacoes() {
           <InventoryDetails
             data={viewingInventory}
             onClose={() => setViewingInventory(null)}
-            onComplete={handleCompleteInventory}
           />
         </DialogContent>
       </Dialog>
@@ -982,7 +1182,7 @@ export function Operacoes() {
             <DialogTitle>Iniciar Contagem de Inventário</DialogTitle>
           </DialogHeader>
           <StartInventoryCountForm
-            ingredients={ingredients}
+            ingredients={stockData.length > 0 ? stockData : ingredients}
             onSave={handleStartInventory}
             onCancel={() => setShowStartInventoryDialog(false)}
             isLoading={isStartingInventory}
@@ -1014,15 +1214,149 @@ export function Operacoes() {
         onConfirm={handleConfirmFinalization}
       />
 
-      {/* Draft Cart Widget - Only show on Estoque tab */}
-      {activeTab === 'estoque' && (
+      {/* Stock Adjustment Dialog */}
+      <Dialog open={!!adjustingIngredient} onOpenChange={(open) => !open && setAdjustingIngredient(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar Estoque</DialogTitle>
+          </DialogHeader>
+          {adjustingIngredient && (
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg border">
+                <p className="font-medium text-gray-900">{adjustingIngredient.name}</p>
+                <p className="text-sm text-gray-600">
+                  Estoque atual: {(adjustingIngredient.current_stock || 0).toFixed(2)} {adjustingIngredient.unit}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adjust-qty">Nova Quantidade ({adjustingIngredient.unit})</Label>
+                <Input
+                  id="adjust-qty"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={adjustNewQty}
+                  onChange={(e) => setAdjustNewQty(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adjust-reason">Motivo do Ajuste *</Label>
+                <Select value={adjustReason} onValueChange={setAdjustReason}>
+                  <SelectTrigger id="adjust-reason">
+                    <SelectValue placeholder="Selecione o motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contagem_fisica">Contagem Física</SelectItem>
+                    <SelectItem value="perda">Perda / Desperdício</SelectItem>
+                    <SelectItem value="vencimento">Vencimento</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="correcao">Correção de Erro</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adjust-notes">Observações</Label>
+                <Textarea
+                  id="adjust-notes"
+                  placeholder="Detalhes adicionais sobre o ajuste..."
+                  value={adjustNotes}
+                  onChange={(e) => setAdjustNotes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              {adjustNewQty && !isNaN(parseFloat(adjustNewQty)) && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                  <p className="font-medium text-yellow-800">
+                    Diferença: {(parseFloat(adjustNewQty) - (adjustingIngredient.current_stock || 0)).toFixed(2)} {adjustingIngredient.unit}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={handleConfirmAdjustStock}
+                  disabled={isAdjusting || !adjustReason}
+                  className="flex-1"
+                >
+                  {isAdjusting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Confirmar Ajuste
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setAdjustingIngredient(null)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* New Storage Center Dialog */}
+      <Dialog open={showAddCenterDialog} onOpenChange={setShowAddCenterDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Novo Centro de Armazenamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                placeholder="Ex: Freezer Secundário"
+                value={newCenterLabel}
+                onChange={(e) => {
+                  setNewCenterLabel(e.target.value);
+                  setNewCenterValue(
+                    e.target.value
+                      .toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/\s+/g, '-')
+                      .replace(/[^a-z0-9-]/g, '')
+                  );
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Identificador</Label>
+              <Input
+                placeholder="Ex: freezer-secundario"
+                value={newCenterValue}
+                onChange={(e) => setNewCenterValue(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">Gerado automaticamente. Sem espaços ou acentos.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleCreateStorageCenter}
+                disabled={!newCenterLabel || !newCenterValue || isCreatingCenter}
+                className="flex-1"
+              >
+                {isCreatingCenter ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Criar Centro
+              </Button>
+              <Button variant="outline" onClick={() => setShowAddCenterDialog(false)} className="flex-1">
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Draft Cart Widget - Show on Pedidos tab to filter drafts */}
+      {activeTab === 'pedidos' && draftOrders.length > 0 && statusFilter !== 'draft' && (
         <DraftCartWidget
           draftCount={draftOrders.length}
-          onClick={() => {
-            setActiveTab('pedidos');
-            setStatusFilter('draft');
-            setSearchParams({ tab: 'pedidos' });
-          }}
+          onClick={() => setStatusFilter('draft')}
         />
       )}
     </div>

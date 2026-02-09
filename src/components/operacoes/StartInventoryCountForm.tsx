@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { DialogFooter } from '../ui/dialog';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Search, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useStorageCenters } from '../../hooks/useStorageCenters';
 
 interface StartInventoryCountFormProps {
   ingredients: any[];
@@ -20,6 +19,7 @@ interface StartInventoryCountFormProps {
 interface InventoryItem {
   ingredientId: string;
   ingredientName: string;
+  category: string;
   systemQty: number;
   countedQty: number;
   unit: string;
@@ -27,17 +27,30 @@ interface InventoryItem {
   notes?: string;
 }
 
+type DivergenceFilter = 'all' | 'falta' | 'sobra' | 'sem';
+type SortOption = 'name-asc' | 'name-desc' | 'system-qty' | 'diff-desc' | 'diff-asc';
+
 export function StartInventoryCountForm({
   ingredients,
   onSave,
   onCancel,
   isLoading = false,
 }: StartInventoryCountFormProps) {
-  const { user } = useAuth();
-  const [countType, setCountType] = useState<'full' | 'partial' | 'spot'>('full');
+  const { centers: storageCentersList, getLabel: getStorageCenterLabel } = useStorageCenters();
   const [storageCenter, setStorageCenter] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<InventoryItem[]>([]);
+
+  // Search, filter, sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [divergenceFilter, setDivergenceFilter] = useState<DivergenceFilter>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('name-asc');
+
+  // Use all registered centers from Firestore (not derived from ingredient data)
+  const availableStorageCenters = useMemo(() => {
+    return storageCentersList.map(c => c.value);
+  }, [storageCentersList]);
 
   useEffect(() => {
     if (storageCenter) {
@@ -49,7 +62,7 @@ export function StartInventoryCountForm({
 
   const loadIngredientsForCenter = () => {
     const filtered = ingredients.filter(
-      ing => (ing.storageCenter || ing.storage_center) === storageCenter
+      ing => (ing.storage_center || ing.storageCenter) === storageCenter
     );
 
     if (filtered.length === 0) {
@@ -61,6 +74,7 @@ export function StartInventoryCountForm({
     const inventoryItems = filtered.map(ing => ({
       ingredientId: ing.id,
       ingredientName: ing.name,
+      category: ing.category || '',
       systemQty: ing.currentStock || ing.current_stock || 0,
       countedQty: 0,
       unit: ing.unit,
@@ -71,19 +85,68 @@ export function StartInventoryCountForm({
     setItems(inventoryItems);
   };
 
-  const handleCountedQtyChange = (index: number, value: string) => {
+  const handleCountedQtyChange = (ingredientId: string, value: string) => {
     const newItems = [...items];
+    const idx = newItems.findIndex(i => i.ingredientId === ingredientId);
+    if (idx === -1) return;
     const counted = parseFloat(value) || 0;
-    newItems[index].countedQty = counted;
-    newItems[index].difference = counted - newItems[index].systemQty;
+    newItems[idx].countedQty = counted;
+    newItems[idx].difference = counted - newItems[idx].systemQty;
     setItems(newItems);
   };
 
-  const handleItemNotesChange = (index: number, value: string) => {
+  const handleItemNotesChange = (ingredientId: string, value: string) => {
     const newItems = [...items];
-    newItems[index].notes = value;
+    const idx = newItems.findIndex(i => i.ingredientId === ingredientId);
+    if (idx === -1) return;
+    newItems[idx].notes = value;
     setItems(newItems);
   };
+
+  // Derive unique categories from loaded items
+  const availableCategories = useMemo(() => {
+    const cats = new Set(items.map(i => i.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [items]);
+
+  // Filtered + sorted view of items
+  const displayItems = useMemo(() => {
+    let result = items;
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(item => item.ingredientName.toLowerCase().includes(q));
+    }
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      result = result.filter(item => item.category === categoryFilter);
+    }
+
+    // Divergence filter
+    if (divergenceFilter === 'falta') {
+      result = result.filter(item => item.difference < 0);
+    } else if (divergenceFilter === 'sobra') {
+      result = result.filter(item => item.difference > 0);
+    } else if (divergenceFilter === 'sem') {
+      result = result.filter(item => item.difference === 0);
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      switch (sortOption) {
+        case 'name-asc': return a.ingredientName.localeCompare(b.ingredientName);
+        case 'name-desc': return b.ingredientName.localeCompare(a.ingredientName);
+        case 'system-qty': return b.systemQty - a.systemQty;
+        case 'diff-desc': return Math.abs(b.difference) - Math.abs(a.difference);
+        case 'diff-asc': return Math.abs(a.difference) - Math.abs(b.difference);
+        default: return 0;
+      }
+    });
+
+    return result;
+  }, [items, searchQuery, categoryFilter, divergenceFilter, sortOption]);
 
   const getStats = () => {
     const totalItems = items.length;
@@ -120,9 +183,8 @@ export function StartInventoryCountForm({
     if (!validateForm()) return;
 
     const data = {
-      countType,
+      countType: 'full',
       storageCenter,
-      countedBy: user?.id || 'anonymous',
       notes: notes || undefined,
       items: items.map(item => ({
         ingredientId: item.ingredientId,
@@ -139,49 +201,37 @@ export function StartInventoryCountForm({
 
   const stats = getStats();
 
+  const getCategoryLabel = (cat: string) => {
+    const labels: Record<string, string> = {
+      'perecivel': 'Perecíveis',
+      'nao-perecivel': 'Não Perecíveis',
+      'bebida': 'Bebidas',
+      'limpeza': 'Limpeza',
+      'descartavel': 'Descartáveis',
+    };
+    return labels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Count Type and Storage Center */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-3">
-          <Label>Tipo de Contagem *</Label>
-          <RadioGroup value={countType} onValueChange={(v: any) => setCountType(v)}>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="full" id="full" />
-              <Label htmlFor="full" className="font-normal cursor-pointer">
-                Contagem Completa
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="partial" id="partial" />
-              <Label htmlFor="partial" className="font-normal cursor-pointer">
-                Contagem Parcial
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="spot" id="spot" />
-              <Label htmlFor="spot" className="font-normal cursor-pointer">
-                Contagem Pontual
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="storageCenter">Centro de Armazenamento *</Label>
-          <Select value={storageCenter} onValueChange={setStorageCenter}>
-            <SelectTrigger id="storageCenter">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cozinha">Cozinha</SelectItem>
-              <SelectItem value="bar">Bar</SelectItem>
-              <SelectItem value="estoque-geral">Estoque Geral</SelectItem>
-              <SelectItem value="refrigerado">Refrigerado</SelectItem>
-              <SelectItem value="congelado">Congelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Storage Center */}
+      <div className="space-y-2">
+        <Label htmlFor="storageCenter">Centro de Armazenamento *</Label>
+        <Select value={storageCenter} onValueChange={setStorageCenter}>
+          <SelectTrigger id="storageCenter" className="w-full md:w-[300px]">
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableStorageCenters.map(center => (
+              <SelectItem key={center} value={center}>
+                {getStorageCenterLabel(center)}
+              </SelectItem>
+            ))}
+            {availableStorageCenters.length === 0 && (
+              <SelectItem value="_empty" disabled>Nenhum centro encontrado</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Ingredients Table */}
@@ -198,6 +248,58 @@ export function StartInventoryCountForm({
             <div className="space-y-3">
               <Label>Ingredientes ({items.length} itens)</Label>
 
+              {/* Search bar */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar ingrediente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Filters + Sort toolbar */}
+              <div className="flex flex-wrap gap-2">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas categorias</SelectItem>
+                    {availableCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{getCategoryLabel(cat)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={divergenceFilter} onValueChange={(v: any) => setDivergenceFilter(v)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Divergência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="falta">Com falta</SelectItem>
+                    <SelectItem value="sobra">Com sobra</SelectItem>
+                    <SelectItem value="sem">Sem divergência</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortOption} onValueChange={(v: any) => setSortOption(v)}>
+                  <SelectTrigger className="w-[170px]">
+                    <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
+                    <SelectValue placeholder="Ordenar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name-asc">Nome A-Z</SelectItem>
+                    <SelectItem value="name-desc">Nome Z-A</SelectItem>
+                    <SelectItem value="system-qty">Qtd. sistema</SelectItem>
+                    <SelectItem value="diff-desc">Maior diferença</SelectItem>
+                    <SelectItem value="diff-asc">Menor diferença</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b sticky top-0">
@@ -210,8 +312,8 @@ export function StartInventoryCountForm({
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index} className="border-b last:border-0 hover:bg-gray-50">
+                    {displayItems.map((item) => (
+                      <tr key={item.ingredientId} className="border-b last:border-0 hover:bg-gray-50">
                         <td className="px-3 py-2 font-medium">{item.ingredientName}</td>
                         <td className="px-3 py-2 text-right text-gray-600">
                           {item.systemQty.toFixed(2)}
@@ -225,7 +327,7 @@ export function StartInventoryCountForm({
                             step="0.01"
                             min="0"
                             value={item.countedQty || ''}
-                            onChange={(e) => handleCountedQtyChange(index, e.target.value)}
+                            onChange={(e) => handleCountedQtyChange(item.ingredientId, e.target.value)}
                             className="text-right"
                             placeholder="0.00"
                           />
@@ -239,6 +341,13 @@ export function StartInventoryCountForm({
                         </td>
                       </tr>
                     ))}
+                    {displayItems.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
+                          Nenhum item encontrado com os filtros atuais
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

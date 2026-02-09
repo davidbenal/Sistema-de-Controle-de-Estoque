@@ -5,6 +5,7 @@ import { config } from 'dotenv';
 import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { getAuth, Auth } from 'firebase-admin/auth';
 import path from 'path';
 import fs from 'fs';
 
@@ -29,6 +30,7 @@ fastify.register(multipart, {
 // Initialize Firebase Admin
 let db: FirebaseFirestore.Firestore | undefined;
 let storage: ReturnType<typeof getStorage> | undefined;
+let auth: Auth | undefined;
 
 try {
   const credentialsPath = path.join(__dirname, '../../firebase-credentials.json');
@@ -51,6 +53,7 @@ try {
 
   db = getFirestore('montuvia1'); // Database in São Paulo
   storage = getStorage();
+  auth = getAuth();
 
   fastify.log.info('✓ Firebase Admin SDK initialized successfully');
 } catch (error) {
@@ -60,13 +63,15 @@ try {
 }
 
 // Make Firebase accessible to routes
-if (db && storage) {
+if (db && storage && auth) {
   fastify.decorate('db', db);
   fastify.decorate('storage', storage);
+  fastify.decorate('auth', auth);
 } else {
   // Create empty decorators to satisfy TypeScript
   fastify.decorate('db', {} as FirebaseFirestore.Firestore);
   fastify.decorate('storage', {} as ReturnType<typeof getStorage>);
+  fastify.decorate('auth', {} as Auth);
 }
 
 // Health check endpoint
@@ -86,6 +91,7 @@ fastify.get('/', async () => {
     status: 'running',
     endpoints: {
       health: '/health',
+      auth: '/api/auth',
       vendas: '/api/vendas',
       cadastros: '/api/cadastros',
       operacoes: '/api/operacoes',
@@ -93,12 +99,18 @@ fastify.get('/', async () => {
       relatorios: '/api/relatorios',
       mapeamentos: '/api/mapeamentos',
       alertas: '/api/alertas',
+      activity: '/api/activity',
     },
   };
 });
 
+// Auth middleware
+import { authMiddleware } from './middleware/auth';
+fastify.addHook('onRequest', authMiddleware);
+
 // Import routes
 import vendasRoutes from './routes/vendas';
+import { authRoutes } from './routes/auth';
 import { alertasRoutes } from './routes/alertas';
 import { dashboardRoutes } from './routes/dashboard';
 import { cadastrosRoutes } from './routes/cadastros';
@@ -107,8 +119,10 @@ import { operacoesRoutes } from './routes/operacoes';
 import { estoqueRoutes } from './routes/estoque';
 import { checklistsRoutes } from './routes/checklists';
 import { relatoriosRoutes } from './routes/relatorios';
+import { activityRoutes } from './routes/activity';
 
 // Register routes
+fastify.register(authRoutes, { prefix: '/api/auth' });
 fastify.register(vendasRoutes, { prefix: '/api/vendas' });
 fastify.register(alertasRoutes, { prefix: '/api/alertas' });
 fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
@@ -118,6 +132,7 @@ fastify.register(operacoesRoutes, { prefix: '/api/operacoes' });
 fastify.register(estoqueRoutes, { prefix: '/api/estoque' });
 fastify.register(checklistsRoutes, { prefix: '/api/checklists' });
 fastify.register(relatoriosRoutes, { prefix: '/api/relatorios' });
+fastify.register(activityRoutes, { prefix: '/api/activity' });
 
 // Start server
 const start = async () => {
@@ -143,5 +158,9 @@ declare module 'fastify' {
   interface FastifyInstance {
     db: FirebaseFirestore.Firestore;
     storage: ReturnType<typeof getStorage>;
+    auth: Auth;
+  }
+  interface FastifyRequest {
+    authUser?: { uid: string; email: string };
   }
 }

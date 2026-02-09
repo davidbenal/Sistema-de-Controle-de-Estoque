@@ -23,26 +23,26 @@ export class OperacoesService {
     limit?: number;
   } = {}) {
     try {
-      let query: any = this.db.collection('purchases');
+      let query: any = this.db.collection('purchases').orderBy('created_at', 'desc');
 
-      if (filters.status) {
-        query = query.where('status', '==', filters.status);
-      }
       if (filters.supplierId) {
         query = query.where('supplier_id', '==', filters.supplierId);
       }
-
-      query = query.orderBy('created_at', 'desc');
 
       if (filters.limit) {
         query = query.limit(filters.limit);
       }
 
       const snapshot = await query.get();
-      const purchases = snapshot.docs.map((doc: any) => ({
+      let purchases = snapshot.docs.map((doc: any) => ({
         id: doc.id,
         ...doc.data(),
       }));
+
+      // Client-side status filter (avoids needing composite Firestore index)
+      if (filters.status) {
+        purchases = purchases.filter((p: any) => p.status === filters.status);
+      }
 
       return { success: true, purchases };
     } catch (error: any) {
@@ -356,8 +356,21 @@ export class OperacoesService {
         throw new Error('Imagem muito grande (máximo 10MB)');
       }
 
-      const bucket = this.storage.bucket();
-      const filename = `${receivingId}-${Date.now()}.jpg`;
+      // Check if Firebase Storage is properly configured
+      let bucket: any;
+      try {
+        bucket = this.storage.bucket();
+        // Test bucket access
+        if (!bucket.name) {
+          throw new Error('Bucket name not available');
+        }
+      } catch (storageError: any) {
+        this.fastify.log.warn('Firebase Storage not configured, skipping photo upload:', storageError.message);
+        throw new Error('Firebase Storage não está configurado. A foto da nota fiscal é opcional - você pode completar o recebimento sem ela.');
+      }
+
+      const ext = mimetype === 'image/png' ? 'png' : mimetype === 'image/webp' ? 'webp' : 'jpg';
+      const filename = `${receivingId}-${Date.now()}.${ext}`;
       const filePath = `receipt-photos/${receivingId}/${filename}`;
       const file = bucket.file(filePath);
 
@@ -367,10 +380,13 @@ export class OperacoesService {
         },
       });
 
-      // Tornar público
-      await file.makePublic();
+      // Generate signed URL (works with uniform bucket-level access)
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: '2030-01-01',
+      });
 
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+      const publicUrl = signedUrl;
 
       // Atualizar documento do recebimento
       await this.db.collection('receivings').doc(receivingId).update({
@@ -465,18 +481,33 @@ export class OperacoesService {
 
       const receivingData = receivingDoc.data() as any;
 
-      // Validação 1: Foto obrigatória
-      if (!receivingData.invoice_photo_url) {
-        throw new Error('Foto da nota fiscal é obrigatória');
-      }
-
-      // Validação 2: Todos itens devem estar conferidos
+      // Validação: Todos itens devem estar conferidos
       const allChecked = receivingData.checklist.every((item: any) => item.is_checked);
       if (!allChecked) {
         throw new Error('Todos os itens devem ser conferidos antes de completar o recebimento');
       }
 
+      // Se completar sem foto da NF, criar alerta para gerente
+      const hasPhoto = !!receivingData.invoice_photo_url;
+      if (!hasPhoto) {
+        try {
+          await this.db.collection('alerts').add({
+            type: 'nota_fiscal_pendente',
+            priority: 'medium',
+            title: 'Nota fiscal pendente',
+            message: `Recebimento do fornecedor ${receivingData.supplier_name} foi completado sem foto da nota fiscal. Providenciar inclusão.`,
+            relatedId: receivingId,
+            status: 'pending',
+            createdAt: FieldValue.serverTimestamp(),
+          });
+          this.fastify.log.info(`Alert created: nota_fiscal_pendente for receiving ${receivingId}`);
+        } catch (alertError: any) {
+          this.fastify.log.warn('Failed to create alert for missing invoice photo:', alertError.message);
+        }
+      }
+
       // Atualizar estoque para itens recebidos
+      const supplierId = receivingData.supplier_id;
       for (const item of receivingData.checklist) {
         if (item.is_received && item.received_qty > 0) {
           // Atualizar estoque do ingrediente com data de pedido
@@ -485,9 +516,28 @@ export class OperacoesService {
             item.received_qty,
             {
               lastOrderDate: receivingData.receiving_date,
-              lastOrderSupplier: receivingData.supplier_id,
+              lastOrderSupplier: supplierId,
             }
           );
+
+          // Auto-criar relacao insumo-fornecedor se nao existe
+          try {
+            const ingredientDoc = await this.db.collection('ingredients').doc(item.ingredient_id).get();
+            if (ingredientDoc.exists) {
+              const ingData = ingredientDoc.data() as any;
+              const supplierIds: string[] = ingData.supplier_ids || (ingData.supplier_id ? [ingData.supplier_id] : []);
+              if (supplierId && !supplierIds.includes(supplierId)) {
+                supplierIds.push(supplierId);
+                await this.db.collection('ingredients').doc(item.ingredient_id).update({
+                  supplier_ids: supplierIds,
+                  updated_at: FieldValue.serverTimestamp(),
+                });
+                this.fastify.log.info(`Auto-linked supplier ${supplierId} to ingredient ${item.ingredient_id}`);
+              }
+            }
+          } catch (linkError: any) {
+            this.fastify.log.warn(`Failed to auto-link supplier to ingredient ${item.ingredient_id}:`, linkError.message);
+          }
 
           // Criar movimentação de estoque
           await this.createStockMovement({
@@ -593,6 +643,32 @@ export class OperacoesService {
     countedBy: string;
     notes?: string;
   }) {
+    // Redirect to submitInventoryCount (single-step flow)
+    return this.submitInventoryCount(data);
+  }
+
+  /**
+   * submitInventoryCount - Fluxo passo unico:
+   * 1. Cria documento inventory_counts com status 'completed'
+   * 2. Ajusta estoque (current_stock) para itens com diferença
+   * 3. Cria stock_movements de tipo 'adjustment'
+   * 4. Detecta divergências grandes e cria alertas + tarefas
+   */
+  async submitInventoryCount(data: {
+    countDate?: string;
+    countType: string;
+    storageCenter: string;
+    items: Array<{
+      ingredientId: string;
+      ingredientName: string;
+      systemQty: number;
+      countedQty: number;
+      unit: string;
+      notes?: string;
+    }>;
+    countedBy: string;
+    notes?: string;
+  }) {
     try {
       const items = data.items.map(item => ({
         ingredient_id: item.ingredientId,
@@ -608,25 +684,156 @@ export class OperacoesService {
         sum + Math.abs(item.difference), 0
       );
 
+      // 1. Criar documento com status 'completed' direto
       const countData = {
-        count_date: new Date(data.countDate),
+        count_date: data.countDate ? new Date(data.countDate) : new Date(),
         count_type: data.countType,
         storage_center: data.storageCenter,
-        status: 'in_progress',
+        status: 'completed',
         items,
         total_differences: totalDifferences,
         counted_by: data.countedBy,
-        approved_by: '',
+        approved_by: data.countedBy,
         notes: data.notes || '',
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
       };
 
       const countRef = await this.db.collection('inventory_counts').add(countData);
+      const countId = countRef.id;
 
-      return { success: true, inventoryCount: { id: countRef.id, ...countData } };
+      // 2. Ajustar estoque para itens com diferença
+      let adjustedCount = 0;
+      for (const item of items) {
+        if (item.difference !== 0) {
+          const ingredientDoc = await this.db.collection('ingredients').doc(item.ingredient_id).get();
+          if (ingredientDoc.exists) {
+            await this.db.collection('ingredients').doc(item.ingredient_id).update({
+              current_stock: item.counted_qty,
+              updated_at: FieldValue.serverTimestamp(),
+            });
+
+            await this.createStockMovement({
+              ingredientId: item.ingredient_id,
+              ingredientName: item.ingredient_name,
+              movementType: 'adjustment',
+              quantity: item.difference,
+              unit: item.unit,
+              referenceType: 'inventory_count',
+              referenceId: countId,
+              storageCenter: data.storageCenter,
+              userId: data.countedBy,
+            });
+
+            adjustedCount++;
+          }
+        }
+      }
+
+      // 3. Detectar divergências e criar alertas
+      let alertsCreated = 0;
+      let tasksCreated = 0;
+
+      const highDiscrepancies: string[] = [];
+      const mediumDiscrepancies: string[] = [];
+
+      for (const item of items) {
+        if (item.difference === 0) continue;
+
+        const absDiff = Math.abs(item.difference);
+        const pctDiff = item.system_qty > 0
+          ? (absDiff / item.system_qty) * 100
+          : 100; // Se system_qty é 0 e há contagem, considerar 100%
+
+        if (pctDiff > 30 || absDiff > 20) {
+          highDiscrepancies.push(
+            `${item.ingredient_name}: sistema ${item.system_qty} → contado ${item.counted_qty} (${item.difference > 0 ? '+' : ''}${item.difference.toFixed(2)} ${item.unit})`
+          );
+        } else if (pctDiff > 15 || absDiff > 10) {
+          mediumDiscrepancies.push(
+            `${item.ingredient_name}: sistema ${item.system_qty} → contado ${item.counted_qty} (${item.difference > 0 ? '+' : ''}${item.difference.toFixed(2)} ${item.unit})`
+          );
+        }
+      }
+
+      const hasHighAlert = highDiscrepancies.length > 0;
+      const hasMediumAlert = mediumDiscrepancies.length > 0;
+
+      if (hasHighAlert || hasMediumAlert) {
+        const priority = hasHighAlert ? 'high' : 'medium';
+        const allDiscrepancies = [...highDiscrepancies, ...mediumDiscrepancies];
+        const message = `Contagem no centro "${data.storageCenter}" detectou ${allDiscrepancies.length} divergência(s):\n${allDiscrepancies.join('\n')}`;
+
+        try {
+          await this.db.collection('alerts').add({
+            type: 'inventory_discrepancy',
+            priority,
+            title: 'Divergência de estoque detectada',
+            message,
+            relatedId: countId,
+            status: 'pending',
+            createdAt: FieldValue.serverTimestamp(),
+          });
+          alertsCreated++;
+          this.fastify.log.info(`Alert created: inventory_discrepancy (${priority}) for count ${countId}`);
+        } catch (alertError: any) {
+          this.fastify.log.warn('Failed to create inventory discrepancy alert:', alertError.message);
+        }
+
+        // Criar tarefa de re-conferência para o gerente
+        try {
+          let centerLabel = data.storageCenter;
+          try {
+            const centersSnap = await this.db.collection('storage_centers')
+              .where('value', '==', data.storageCenter).limit(1).get();
+            if (!centersSnap.empty) {
+              centerLabel = centersSnap.docs[0].data().label;
+            }
+          } catch (_) { /* fallback to raw value */ }
+
+          // Find an active gerente to assign the task to
+          let assignTo = data.countedBy || 'system';
+          try {
+            const gerenteSnap = await this.db.collection('users')
+              .where('role', '==', 'gerencia')
+              .where('status', '==', 'active')
+              .limit(1).get();
+            if (!gerenteSnap.empty) {
+              assignTo = gerenteSnap.docs[0].id;
+            }
+          } catch (_) { /* fallback to countedBy */ }
+
+          await this.db.collection('tasks').add({
+            title: `Re-conferir estoque: ${centerLabel} - ${allDiscrepancies.length} itens com divergencia`,
+            description: message,
+            assigned_to: assignTo,
+            due_date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            origin: 'inventory_count',
+            origin_type: 'inventory_count',
+            origin_id: countId,
+            priority: 'alta',
+            category: 'conferencia',
+            completed: false,
+            created_by: 'system',
+            created_at: FieldValue.serverTimestamp(),
+            updated_at: FieldValue.serverTimestamp(),
+          });
+          tasksCreated++;
+          this.fastify.log.info(`Task created: re-check inventory for count ${countId}`);
+        } catch (taskError: any) {
+          this.fastify.log.warn('Failed to create re-check task:', taskError.message);
+        }
+      }
+
+      return {
+        success: true,
+        inventoryCount: { id: countId, ...countData },
+        adjustedCount,
+        alertsCreated,
+        tasksCreated,
+      };
     } catch (error: any) {
-      this.fastify.log.error('Error starting inventory count:', error);
+      this.fastify.log.error('Error submitting inventory count:', error);
       throw error;
     }
   }
@@ -776,12 +983,9 @@ export class OperacoesService {
         throw new Error('Ingrediente não encontrado');
       }
 
-      const ingredientData = ingredientDoc.data() as any;
-      const currentStock = ingredientData.current_stock || 0;
-      const newStock = currentStock + quantityToAdd;
-
+      // Use FieldValue.increment() for atomic addition (prevents overwrites)
       const updateData: any = {
-        current_stock: newStock,
+        current_stock: FieldValue.increment(quantityToAdd),
         last_stock_update: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
       };
@@ -796,7 +1000,7 @@ export class OperacoesService {
 
       await this.db.collection('ingredients').doc(ingredientId).update(updateData);
 
-      this.fastify.log.info(`Stock updated for ingredient ${ingredientId}: ${currentStock} → ${newStock}`);
+      this.fastify.log.info(`Stock incremented for ingredient ${ingredientId}: +${quantityToAdd}`);
     } catch (error: any) {
       this.fastify.log.error('Error updating ingredient stock:', error);
       throw error;

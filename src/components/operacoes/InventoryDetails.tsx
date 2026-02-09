@@ -1,22 +1,29 @@
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Calendar, User, Package, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { Calendar, User, Package, AlertOctagon, AlertTriangle } from 'lucide-react';
+import { useStorageCenters } from '../../hooks/useStorageCenters';
 
 interface InventoryDetailsProps {
   data: any;
   onClose: () => void;
-  onComplete?: (id: string) => void;
 }
 
-export function InventoryDetails({ data, onClose, onComplete }: InventoryDetailsProps) {
+export function InventoryDetails({ data, onClose }: InventoryDetailsProps) {
+  const { getLabel } = useStorageCenters();
   if (!data) return null;
 
-  const isCompleted = data.status === 'completed';
-  const countDate = data.count_date?.toDate
-    ? data.count_date.toDate()
-    : data.count_date
-      ? new Date(data.count_date)
-      : new Date();
+  const countDate = data.count_date?._seconds
+    ? new Date(data.count_date._seconds * 1000)
+    : data.count_date?.toDate
+      ? data.count_date.toDate()
+      : data.count_date
+        ? new Date(data.count_date)
+        : new Date();
+
+  const itemsWithDiff = (data.items || []).filter((i: any) => {
+    const diff = i.difference ?? ((i.counted_qty ?? i.countedQty ?? 0) - (i.system_qty ?? i.systemQty ?? 0));
+    return Math.abs(diff) > 0.01;
+  });
 
   return (
     <div className="space-y-6">
@@ -24,24 +31,14 @@ export function InventoryDetails({ data, onClose, onComplete }: InventoryDetails
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-bold text-gray-900">Contagem #{data.id?.slice(0, 6)}</h2>
-            <Badge variant="outline" className="capitalize">{data.storage_center || data.storageCenter}</Badge>
-            <Badge variant={isCompleted ? 'default' : 'secondary'}>
-              {isCompleted ? 'Concluída' : 'Em andamento'}
-            </Badge>
+            <Badge variant="outline">{getLabel(data.storage_center || data.storageCenter)}</Badge>
+            <Badge variant="default">Concluída</Badge>
           </div>
           <p className="text-gray-500 mt-1">
             Realizada em {countDate.toLocaleDateString('pt-BR')}
           </p>
         </div>
-        <div className="flex gap-2">
-          {!isCompleted && onComplete && (
-            <Button onClick={() => onComplete(data.id)}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Aprovar e Ajustar Estoque
-            </Button>
-          )}
-          <Button variant="outline" onClick={onClose}>Fechar</Button>
-        </div>
+        <Button variant="outline" onClick={onClose}>Fechar</Button>
       </div>
 
       <div className="flex gap-4 flex-wrap">
@@ -57,6 +54,12 @@ export function InventoryDetails({ data, onClose, onComplete }: InventoryDetails
           <Calendar className="h-4 w-4" />
           Tipo: <span className="font-medium text-gray-900 capitalize">{data.count_type || data.countType}</span>
         </div>
+        {itemsWithDiff.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-orange-700 bg-orange-100 px-3 py-1 rounded-full">
+            <AlertTriangle className="h-4 w-4" />
+            {itemsWithDiff.length} divergência(s) detectada(s)
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

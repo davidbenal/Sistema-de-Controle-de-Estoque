@@ -1,30 +1,20 @@
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Separator } from '../ui/separator';
-import { Package, TrendingUp, AlertTriangle, Calendar } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Package, TrendingUp, Calendar, Users } from 'lucide-react';
+import { useStorageCenters } from '../../hooks/useStorageCenters';
 
 interface IngredientDetailsProps {
   data: any;
-  supplier?: any;
+  suppliers?: any[];
   onClose: () => void;
   onEdit: () => void;
 }
 
-const mockHistoryData = [
-  { name: 'Jan', stock: 40, price: 12.50 },
-  { name: 'Fev', stock: 35, price: 12.80 },
-  { name: 'Mar', stock: 50, price: 13.00 },
-  { name: 'Abr', stock: 45, price: 12.90 },
-  { name: 'Mai', stock: 30, price: 13.50 },
-  { name: 'Jun', stock: data => data.currentStock, price: data => data.price },
-];
-
-export function IngredientDetails({ data, supplier, onClose, onEdit }: IngredientDetailsProps) {
+export function IngredientDetails({ data, suppliers = [], onClose, onEdit }: IngredientDetailsProps) {
+  const { getLabel } = useStorageCenters();
   if (!data) return null;
 
-  // Map snake_case fields from API to camelCase for display
   const ingredient = {
     ...data,
     currentStock: data.current_stock ?? data.currentStock ?? 0,
@@ -34,12 +24,6 @@ export function IngredientDetails({ data, supplier, onClose, onEdit }: Ingredien
     lastPurchaseDate: data.purchase_date ?? data.lastPurchaseDate,
     storageCenter: data.storage_center ?? data.storageCenter,
   };
-
-  const chartData = mockHistoryData.map(d => ({
-    ...d,
-    stock: typeof d.stock === 'function' ? d.stock(ingredient) : d.stock,
-    price: typeof d.price === 'function' ? d.price(ingredient) : d.price,
-  }));
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -82,14 +66,12 @@ export function IngredientDetails({ data, supplier, onClose, onEdit }: Ingredien
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Preço Total</CardTitle>
+            <CardTitle className="text-sm font-medium">Preco Total</CardTitle>
             <TrendingUp className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {ingredient.price?.toFixed(2) || '0.00'}</div>
-            <p className="text-xs text-gray-500">
-              Preço de compra
-            </p>
+            <div className="text-2xl font-bold">R$ {Number(ingredient.price || 0).toFixed(2)}</div>
+            <p className="text-xs text-gray-500">Preco de compra</p>
           </CardContent>
         </Card>
 
@@ -111,53 +93,57 @@ export function IngredientDetails({ data, supplier, onClose, onEdit }: Ingredien
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Detalhes do Fornecedor</h3>
-          <Card>
-            <CardContent className="pt-6">
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Nome:</dt>
-                  <dd className="font-medium">{supplier?.name || 'Não informado'}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Contato:</dt>
-                  <dd className="font-medium">{supplier?.contact || '-'}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Prazo de Entrega:</dt>
-                  <dd className="font-medium">{supplier?.deliveryTime || '-'} dias</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-500">Condições:</dt>
-                  <dd className="font-medium">{supplier?.paymentTerms || '-'}</dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <Users className="h-5 w-5 text-gray-500" />
+            Fornecedores ({suppliers.length})
+          </h3>
+          {suppliers.length > 0 ? (
+            <div className="space-y-3">
+              {suppliers.map(supplier => (
+                <Card key={supplier.id}>
+                  <CardContent className="pt-4 pb-4">
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-gray-900">{supplier.name}</h4>
+                      <dl className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-gray-500">Contato:</dt>
+                          <dd className="font-medium">{supplier.contact || '-'}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-gray-500">Prazo de Entrega:</dt>
+                          <dd className="font-medium">
+                            {(supplier.deliveryTime ?? supplier.delivery_time) != null
+                              ? `${supplier.deliveryTime ?? supplier.delivery_time} dias`
+                              : '-'}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-gray-500">Pagamento:</dt>
+                          <dd className="font-medium">{supplier.paymentTerms || supplier.payment_terms || '-'}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-gray-500 italic text-sm">Nenhum fornecedor associado a este insumo.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-          <h3 className="font-semibold text-lg mt-4">Armazenamento</h3>
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Armazenamento</h3>
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <Package className="text-gray-400" />
-                <span>Localização: <strong>{ingredient.storageCenter}</strong></span>
+                <span>Localizacao: <strong>{getLabel(ingredient.storageCenter)}</strong></span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Histórico de Preço</h3>
-          <Card className="h-[250px]">
-            <CardContent className="h-full pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
-                  <Tooltip formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Preço']} />
-                  <Line type="monotone" dataKey="price" stroke="#f97316" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>

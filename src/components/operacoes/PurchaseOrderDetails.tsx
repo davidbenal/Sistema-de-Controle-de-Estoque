@@ -32,7 +32,7 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
             <h2 className="text-2xl font-bold text-gray-900">Pedido #{data.id}</h2>
             <Badge className={getStatusColor(data.status)}>{data.status}</Badge>
           </div>
-          <p className="text-gray-500 mt-1">Criado em {new Date(data.date).toLocaleDateString('pt-BR')}</p>
+          <p className="text-gray-500 mt-1">Criado em {(() => { const d = data.date || data.order_date; if (!d) return '—'; const dt = d?.seconds ? new Date(d.seconds * 1000) : new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); })()}</p>
         </div>
         <Button variant="outline" onClick={onClose}>Fechar</Button>
       </div>
@@ -55,7 +55,7 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
               <Calendar className="h-5 w-5 text-gray-500" />
               <h3 className="font-semibold">Previsão de Entrega</h3>
             </div>
-            <p className="text-lg font-medium">{new Date(data.expectedDelivery).toLocaleDateString('pt-BR')}</p>
+            <p className="text-lg font-medium">{(() => { const d = data.expectedDelivery || data.expected_delivery; if (!d) return '—'; const dt = d?.seconds ? new Date(d.seconds * 1000) : new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); })()}</p>
           </CardContent>
         </Card>
 
@@ -65,7 +65,7 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
               <DollarSign className="h-5 w-5 text-gray-500" />
               <h3 className="font-semibold">Total do Pedido</h3>
             </div>
-            <p className="text-2xl font-bold text-green-600">R$ {data.total.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-green-600">R$ {(data.total ?? data.total_value ?? 0).toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
@@ -94,8 +94,8 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
                   <tr key={idx} className="bg-white">
                     <td className="px-4 py-3 font-medium">{name}</td>
                     <td className="px-4 py-3 text-right">{item.quantity} {unit}</td>
-                    <td className="px-4 py-3 text-right">R$ {item.unitPrice.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right font-medium">R$ {(item.quantity * item.unitPrice).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right">R$ {(item.unitPrice ?? item.unit_price ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-medium">R$ {((item.quantity ?? 0) * (item.unitPrice ?? item.unit_price ?? 0)).toFixed(2)}</td>
                   </tr>
                 );
               })}
@@ -103,7 +103,7 @@ export function PurchaseOrderDetails({ data, onClose }: PurchaseOrderDetailsProp
             <tfoot className="bg-gray-50 font-bold">
               <tr>
                 <td colSpan={3} className="px-4 py-3 text-right">Total</td>
-                <td className="px-4 py-3 text-right text-green-600">R$ {data.total.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-green-600">R$ {(data.total ?? data.total_value ?? 0).toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>

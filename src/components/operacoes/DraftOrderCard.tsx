@@ -119,7 +119,7 @@ export function DraftOrderCard({
             <Separator className="my-4" />
             <div className="flex justify-between font-semibold">
               <span>Total Estimado:</span>
-              <span>R$ {draft.total_value.toFixed(2)}</span>
+              <span>R$ {(draft.total_value ?? 0).toFixed(2)}</span>
             </div>
           </>
         ) : (

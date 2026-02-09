@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { config } from '../config';
+import { apiFetch } from '../lib/api';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from './ui/sheet';
 
 interface LayoutProps {
@@ -115,7 +116,7 @@ export function Layout({ children }: LayoutProps) {
   useEffect(() => {
     async function fetchAlertCount() {
       try {
-        const response = await fetch(`${config.endpoints.alertas.stats}`);
+        const response = await apiFetch(config.endpoints.alertas.stats);
         const result = await response.json();
         if (result.success) {
           setUnresolvedAlerts(result.stats?.byStatus?.pending || 0);

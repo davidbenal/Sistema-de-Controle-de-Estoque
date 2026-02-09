@@ -1,5 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { OperacoesService } from '../services/operacoes';
+import { resolveUser } from '../utils/resolveUser';
+import { logActivity } from '../utils/activityLogger';
 
 export async function operacoesRoutes(fastify: FastifyInstance) {
   const operacoesService = new OperacoesService(fastify);
@@ -66,11 +68,28 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
   fastify.post('/purchases', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = request.body as any;
+      // Extract user from auth token instead of body
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      if (authUser) {
+        data.createdBy = authUser.id;
+      }
+
       const result = await operacoesService.createPurchase(data);
 
       if (!result.success) {
         return reply.code(400).send(result);
       }
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'purchase_created',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'purchase',
+        entityId: result.purchase.id,
+        summary: `${authUser?.name} criou pedido para ${data.supplierName}`,
+        details: { supplierName: data.supplierName, totalValue: result.purchase.total_value },
+      });
 
       return reply.code(201).send(result);
     } catch (error: any) {
@@ -251,8 +270,7 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
       fastify.log.error('Erro ao fazer upload de foto:', error);
       return reply.code(500).send({
         success: false,
-        error: 'Erro ao processar upload',
-        message: error.message,
+        error: error.message || 'Erro ao processar upload',
       });
     }
   });
@@ -272,7 +290,7 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
         expiryDate?: string;
         batchNumber?: string;
         storageCenter: string;
-        userId: string;
+        userId?: string; // kept for backward compat but overridden by auth
       };
 
       const index = parseInt(itemIndex, 10);
@@ -281,6 +299,12 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
           success: false,
           error: 'Índice do item inválido',
         });
+      }
+
+      // Override userId from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      if (authUser) {
+        data.userId = authUser.id;
       }
 
       const result = await operacoesService.updateChecklistItem(id, index, data);
@@ -307,23 +331,29 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
   fastify.post('/receivings/:id/complete', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const { userId, generalNotes } = request.body as {
-        userId: string;
+      const { generalNotes } = request.body as {
         generalNotes?: string;
       };
 
-      if (!userId) {
-        return reply.code(400).send({
-          success: false,
-          error: 'ID do usuário é obrigatório',
-        });
-      }
+      // Get userId from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const userId = authUser?.id || 'anonymous';
 
       const result = await operacoesService.completeReceiving(id, userId, generalNotes);
 
       if (!result.success) {
         return reply.code(400).send(result);
       }
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'receiving_completed',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'receiving',
+        entityId: id,
+        summary: `${authUser?.name} completou recebimento`,
+      });
 
       return reply.code(200).send(result);
     } catch (error: any) {
@@ -397,11 +427,27 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
   fastify.post('/inventory-counts', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = request.body as any;
+      // Override countedBy from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      if (authUser) {
+        data.countedBy = authUser.id;
+      }
+
       const result = await operacoesService.startInventoryCount(data);
 
       if (!result.success) {
         return reply.code(400).send(result);
       }
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'inventory_started',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'inventory_count',
+        entityId: result.inventoryCount?.id || 'unknown',
+        summary: `${authUser?.name} iniciou contagem de inventario`,
+      });
 
       return reply.code(201).send(result);
     } catch (error: any) {
@@ -445,13 +491,26 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
   fastify.post('/inventory-counts/:id/complete', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const { approvedBy } = request.body as { approvedBy?: string };
 
-      const result = await operacoesService.completeInventoryCount(id, approvedBy || 'anonymous');
+      // Get approvedBy from auth token
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+      const approvedBy = authUser?.id || 'anonymous';
+
+      const result = await operacoesService.completeInventoryCount(id, approvedBy);
 
       if (!result.success) {
         return reply.code(400).send(result);
       }
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'inventory_completed',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'inventory_count',
+        entityId: id,
+        summary: `${authUser?.name} completou contagem de inventario`,
+      });
 
       return reply.code(200).send(result);
     } catch (error: any) {

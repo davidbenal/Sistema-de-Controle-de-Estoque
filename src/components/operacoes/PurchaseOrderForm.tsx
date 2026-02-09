@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { DialogFooter } from '../ui/dialog';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PurchaseOrderFormProps {
@@ -58,6 +58,10 @@ export function PurchaseOrderForm({
         ingredientName: ingredient.name,
         unit: ingredient.unit,
       };
+      // Auto-add empty row if last row was filled
+      if (index === newItems.length - 1) {
+        newItems.push({ ingredientId: '', ingredientName: '', quantity: 0, unit: '', unitPrice: 0 });
+      }
       setItems(newItems);
     }
   };
@@ -79,9 +83,12 @@ export function PurchaseOrderForm({
   };
 
   const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
+    const newItems = items.filter((_, i) => i !== index);
+    // Always keep at least one empty row at the end
+    if (newItems.length === 0 || newItems[newItems.length - 1].ingredientId !== '') {
+      newItems.push({ ingredientId: '', ingredientName: '', quantity: 0, unit: '', unitPrice: 0 });
     }
+    setItems(newItems);
   };
 
   const calculateSubtotal = (item: OrderItem) => {
@@ -194,19 +201,7 @@ export function PurchaseOrderForm({
 
       {/* Items Table */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label>Itens do Pedido *</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addItem}
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Item
-          </Button>
-        </div>
+        <Label>Itens do Pedido *</Label>
 
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
@@ -229,7 +224,7 @@ export function PurchaseOrderForm({
                       onValueChange={(value) => handleIngredientChange(index, value)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
+                        <SelectValue placeholder="Selecione um ingrediente..." />
                       </SelectTrigger>
                       <SelectContent>
                         {ingredients.map(ing => (
@@ -274,7 +269,7 @@ export function PurchaseOrderForm({
                       variant="ghost"
                       size="sm"
                       onClick={() => removeItem(index)}
-                      disabled={items.length === 1 || isLoading}
+                      disabled={(!item.ingredientId && items.length === 1) || isLoading}
                     >
                       <X className="h-4 w-4 text-red-500" />
                     </Button>

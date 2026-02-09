@@ -7,6 +7,15 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export const config = {
   apiUrl: API_URL,
   endpoints: {
+    auth: {
+      setupOwner: `${API_URL}/api/auth/setup-owner`,
+      invite: `${API_URL}/api/auth/invite`,
+      resendInvite: `${API_URL}/api/auth/resend-invite`,
+      me: `${API_URL}/api/auth/me`,
+    },
+    activity: {
+      list: `${API_URL}/api/activity`,
+    },
     vendas: {
       upload: `${API_URL}/api/vendas/upload`,
       historico: `${API_URL}/api/vendas/historico`,
@@ -24,6 +33,7 @@ export const config = {
       fichaTecnica: (id: string) => `${API_URL}/api/cadastros/fichas-tecnicas/${id}`,
       equipe: `${API_URL}/api/cadastros/equipe`,
       membro: (id: string) => `${API_URL}/api/cadastros/equipe/${id}`,
+      storageCenters: `${API_URL}/api/cadastros/storage-centers`,
     },
     mapeamentos: {
       list: `${API_URL}/api/mapeamentos`,

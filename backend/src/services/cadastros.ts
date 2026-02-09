@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 
 export class CadastrosService {
   private fastify: FastifyInstance;
@@ -21,10 +22,16 @@ export class CadastrosService {
 
       const snapshot = await query.get();
 
-      let ingredientes = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      let ingredientes = snapshot.docs.map(doc => {
+        const d = doc.data() as any;
+        // Normalizar: migrar supplier_id (string) -> supplier_ids (array)
+        const supplier_ids = d.supplier_ids || (d.supplier_id ? [d.supplier_id] : []);
+        return {
+          id: doc.id,
+          ...d,
+          supplier_ids,
+        };
+      });
 
       // Filtro de busca (client-side já que Firestore não suporta LIKE)
       if (filters?.search) {
@@ -229,15 +236,22 @@ export class CadastrosService {
         throw new Error('Fornecedor não encontrado');
       }
 
-      // Verificar se tem ingredientes usando este fornecedor
+      // Verificar se tem ingredientes usando este fornecedor (array-contains)
       const ingredientsSnapshot = await this.fastify.db
+        .collection('ingredients')
+        .where('supplier_ids', 'array-contains', id)
+        .get();
+
+      // Fallback: tambem checar campo legado supplier_id
+      const legacySnapshot = await this.fastify.db
         .collection('ingredients')
         .where('supplier_id', '==', id)
         .get();
 
-      if (!ingredientsSnapshot.empty) {
+      const totalUsing = ingredientsSnapshot.size + legacySnapshot.size;
+      if (totalUsing > 0) {
         throw new Error(
-          `Não é possível deletar. ${ingredientsSnapshot.size} ingredientes usam este fornecedor.`
+          `Não é possível deletar. ${totalUsing} ingredientes usam este fornecedor.`
         );
       }
 
@@ -332,10 +346,9 @@ export class CadastrosService {
         .orderBy('name', 'asc')
         .get();
 
-      const equipe = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const equipe = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((m: any) => m.status !== 'deleted');
 
       return {
         success: true,
@@ -686,12 +699,38 @@ export class CadastrosService {
 
       const docRef = await this.fastify.db.collection('users').add(membro);
 
+      // Try to create Firebase Auth user and generate invite link
+      let inviteLink: string | null = null;
+      let authUid: string | null = null;
+
+      try {
+        const tempPassword = crypto.randomBytes(16).toString('hex');
+        const authUser = await (this.fastify as any).auth.createUser({
+          email: data.email,
+          password: tempPassword,
+          displayName: data.name,
+        });
+        authUid = authUser.uid;
+
+        // Update Firestore doc with auth_uid
+        await docRef.update({ auth_uid: authUser.uid });
+
+        // Generate password reset link (acts as invite link)
+        inviteLink = await (this.fastify as any).auth.generatePasswordResetLink(data.email);
+      } catch (authError: any) {
+        this.fastify.log.error('Erro ao criar usuario Firebase Auth (Firestore doc criado):', authError);
+        // Firestore doc still exists, but Auth user creation failed
+        // inviteLink stays null - admin can resend later
+      }
+
       return {
         success: true,
         membro: {
           id: docRef.id,
           ...membro,
+          ...(authUid ? { auth_uid: authUid } : {}),
         },
+        inviteLink,
       };
     } catch (error: any) {
       this.fastify.log.error('Erro ao criar membro da equipe:', error);
@@ -797,7 +836,8 @@ export class CadastrosService {
     name: string;
     category: string;
     unit: string;
-    supplierId: string;
+    supplierIds?: string[];
+    supplierId?: string; // backward compat
     grossQty: number;
     netQty: number;
     price: number;
@@ -809,7 +849,7 @@ export class CadastrosService {
   }) {
     try {
       // Validar campos obrigatórios
-      const requiredFields = ['name', 'category', 'unit', 'supplierId', 'grossQty', 'netQty', 'price', 'purchaseDate', 'minStock', 'maxStock', 'storageCenter'];
+      const requiredFields = ['name', 'category', 'unit', 'grossQty', 'netQty', 'price', 'purchaseDate', 'minStock', 'maxStock', 'storageCenter'];
       for (const field of requiredFields) {
         if (!data[field as keyof typeof data]) {
           throw new Error(`Campo obrigatório não preenchido: ${field}`);
@@ -834,11 +874,14 @@ export class CadastrosService {
       // Calcular rendimento
       const yieldFactor = data.netQty / data.grossQty;
 
+      // Normalizar fornecedores: aceitar array ou string unica
+      const supplierIds = data.supplierIds || (data.supplierId ? [data.supplierId] : []);
+
       const ingredient = {
         name: data.name,
         category: data.category,
         unit: data.unit,
-        supplier_id: data.supplierId,
+        supplier_ids: supplierIds,
         gross_qty: data.grossQty,
         net_qty: data.netQty,
         yield_factor: yieldFactor,
@@ -904,7 +947,8 @@ export class CadastrosService {
       if (data.name !== undefined) updateData.name = data.name;
       if (data.category !== undefined) updateData.category = data.category;
       if (data.unit !== undefined) updateData.unit = data.unit;
-      if (data.supplierId !== undefined) updateData.supplier_id = data.supplierId;
+      if (data.supplierIds !== undefined) updateData.supplier_ids = data.supplierIds;
+      else if (data.supplierId !== undefined) updateData.supplier_ids = data.supplierId ? [data.supplierId] : [];
       if (data.grossQty !== undefined) updateData.gross_qty = data.grossQty;
       if (data.netQty !== undefined) updateData.net_qty = data.netQty;
       if (data.price !== undefined) updateData.price = data.price;
@@ -975,6 +1019,73 @@ export class CadastrosService {
     } catch (error: any) {
       this.fastify.log.error('Erro ao deletar ingrediente:', error);
       throw new Error(`Erro ao deletar ingrediente: ${error.message}`);
+    }
+  }
+
+  // ==================== CENTROS DE ARMAZENAMENTO ====================
+
+  async listStorageCenters() {
+    try {
+      const snapshot = await this.fastify.db
+        .collection('storage_centers')
+        .orderBy('order', 'asc')
+        .get();
+
+      const centers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      return {
+        success: true,
+        centers,
+        total: centers.length,
+      };
+    } catch (error: any) {
+      this.fastify.log.error('Erro ao listar centros de armazenamento:', error);
+      throw new Error(`Erro ao listar centros: ${error.message}`);
+    }
+  }
+
+  async createStorageCenter(data: { value: string; label: string }) {
+    try {
+      if (!data.value || !data.label) {
+        throw new Error('Campos obrigatórios: value e label');
+      }
+
+      const existing = await this.fastify.db
+        .collection('storage_centers')
+        .where('value', '==', data.value)
+        .get();
+
+      if (!existing.empty) {
+        throw new Error('Centro de armazenamento já existe com este identificador');
+      }
+
+      const allCenters = await this.fastify.db
+        .collection('storage_centers')
+        .orderBy('order', 'desc')
+        .limit(1)
+        .get();
+
+      const maxOrder = allCenters.empty ? 0 : (allCenters.docs[0].data().order || 0);
+
+      const center = {
+        value: data.value,
+        label: data.label,
+        order: maxOrder + 1,
+        created_at: new Date(),
+      };
+
+      const docRef = await this.fastify.db.collection('storage_centers').add(center);
+
+      return {
+        success: true,
+        center: { id: docRef.id, ...center },
+      };
+    } catch (error: any) {
+      this.fastify.log.error('Erro ao criar centro de armazenamento:', error);
+      throw new Error(`Erro ao criar centro: ${error.message}`);
     }
   }
 }

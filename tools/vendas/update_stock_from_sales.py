@@ -196,6 +196,8 @@ def create_sale_documents(db, valid_sales, upload_id):
             'category': sale.get('category', ''),
             'unitPrice': sale.get('unitPrice', 0),
             'quantity': sale.get('quantity', 0),
+            'totalValue': sale.get('totalValue', 0),
+            'discountValue': sale.get('discountValue', 0),
             'seller': sale.get('seller', ''),
             'customer': sale.get('customer', ''),
             'saleDate': sale.get('saleDate', ''),
@@ -244,6 +246,7 @@ def update_stock_from_sales(validated_data, upload_id):
 
     result = {
         'salesCreated': 0,
+        'totalRevenue': 0,
         'ingredientsUpdated': 0,
         'stockDecrements': {},
         'warnings': [],
@@ -280,9 +283,16 @@ def update_stock_from_sales(validated_data, upload_id):
     }
     print(f"✓ {result['ingredientsUpdated']} ingredientes atualizados")
 
-    # 5. Criar documentos de venda
+    # 5. Calcular receita total
+    result['totalRevenue'] = sum(
+        (s.get('totalValue') or (s.get('unitPrice', 0) * s.get('quantity', 0)))
+        for s in valid_sales
+    )
+
+    # 6. Criar documentos de venda
     result['salesCreated'] = create_sale_documents(db, valid_sales, upload_id)
     print(f"✓ {result['salesCreated']} vendas registradas")
+    print(f"✓ R$ {result['totalRevenue']:.2f} receita total")
 
     return result
 

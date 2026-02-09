@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { CadastrosService } from '../services/cadastros';
+import { resolveUser } from '../utils/resolveUser';
+import { logActivity } from '../utils/activityLogger';
 
 export async function cadastrosRoutes(fastify: FastifyInstance) {
   const cadastrosService = new CadastrosService(fastify);
@@ -238,7 +240,22 @@ export async function cadastrosRoutes(fastify: FastifyInstance) {
   fastify.post('/equipe', async (request, reply) => {
     try {
       const data = request.body as any;
+      // Resolve current user for activity logging
+      const authUser = await resolveUser(fastify.db, request.authUser!.uid);
+
       const result = await cadastrosService.createMembroEquipe(data);
+
+      // Fire-and-forget activity log
+      logActivity(fastify.db, {
+        action: 'user_invited',
+        actorId: authUser?.id || 'unknown',
+        actorName: authUser?.name || 'Unknown',
+        entityType: 'team_member',
+        entityId: result.membro?.id || 'unknown',
+        summary: `${authUser?.name || 'Usuario'} convidou ${data.name || 'novo membro'} para a equipe`,
+        details: { memberName: data.name, role: data.role },
+      });
+
       return reply.code(201).send(result);
     } catch (error: any) {
       fastify.log.error('Erro ao criar membro da equipe:', error);
@@ -425,6 +442,29 @@ export async function cadastrosRoutes(fastify: FastifyInstance) {
         success: false,
         error: error.message,
       });
+    }
+  });
+
+  // ==================== CENTROS DE ARMAZENAMENTO ====================
+
+  fastify.get('/storage-centers', async (request, reply) => {
+    try {
+      const result = await cadastrosService.listStorageCenters();
+      return reply.code(200).send(result);
+    } catch (error: any) {
+      fastify.log.error('Erro na rota GET /cadastros/storage-centers:', error);
+      return reply.code(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/storage-centers', async (request, reply) => {
+    try {
+      const data = request.body as any;
+      const result = await cadastrosService.createStorageCenter(data);
+      return reply.code(201).send(result);
+    } catch (error: any) {
+      fastify.log.error('Erro ao criar centro de armazenamento:', error);
+      return reply.code(400).send({ success: false, error: error.message });
     }
   });
 }

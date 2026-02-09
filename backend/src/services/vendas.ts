@@ -109,10 +109,38 @@ export class VendasService {
   }
 
   /**
+   * Verifica se Python3 e dependências estão disponíveis
+   */
+  private checkPythonAvailability(): void {
+    try {
+      execSync('python3 --version', { encoding: 'utf-8', timeout: 5000 });
+    } catch {
+      throw new Error('Python3 não encontrado no sistema. Instale Python 3 para processar uploads de vendas.');
+    }
+
+    try {
+      execSync('python3 -c "import pandas; import firebase_admin; from google.cloud import firestore"', {
+        encoding: 'utf-8',
+        timeout: 10000,
+        cwd: this.projectRoot,
+      });
+    } catch {
+      throw new Error('Dependências Python faltando. Execute: pip3 install pandas firebase-admin google-cloud-firestore python-dotenv');
+    }
+  }
+
+  /**
    * Executa pipeline Python de processamento
    */
   private executePythonPipeline(filePath: string, uploadId: string): any {
     const scriptPath = path.join(this.projectRoot, 'tools/vendas/process_sales_upload.py');
+
+    // Verificar pré-requisitos
+    this.checkPythonAvailability();
+
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Script de pipeline não encontrado: ${scriptPath}`);
+    }
 
     try {
       this.fastify.log.info(`Executando pipeline Python: ${scriptPath}`);
@@ -124,12 +152,12 @@ export class VendasService {
         {
           encoding: 'utf-8',
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          timeout: 120000, // 2 min timeout
           cwd: this.projectRoot,
         }
       );
 
       // Extract JSON from output (ignore progress prints)
-      // JSON should be the last valid JSON object in output
       const lines = output.trim().split('\n');
 
       for (let i = lines.length - 1; i >= 0; i--) {
@@ -138,27 +166,36 @@ export class VendasService {
           const result = JSON.parse(candidate);
           return result;
         } catch {
-          // Not valid JSON, try previous lines
           continue;
         }
       }
 
-      // If no JSON found, throw error
       throw new Error('Nenhum JSON válido encontrado no output do pipeline');
 
     } catch (error: any) {
       this.fastify.log.error('Erro ao executar pipeline Python:', error.message);
+
+      // Tentar parsear stdout do erro (execSync coloca stdout no error)
+      if (error.stdout) {
+        const lines = (error.stdout as string).trim().split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            return JSON.parse(lines.slice(i).join('\n'));
+          } catch { continue; }
+        }
+      }
 
       // Tentar parsear stderr como JSON
       if (error.stderr) {
         try {
           return JSON.parse(error.stderr);
         } catch {
-          // Não é JSON, retornar erro genérico
+          // stderr não é JSON
         }
       }
 
-      throw new Error(`Pipeline falhou: ${error.message}`);
+      const hint = error.message?.includes('ENOENT') ? ' (python3 não encontrado)' : '';
+      throw new Error(`Pipeline falhou${hint}: ${error.message}`);
     }
   }
 
