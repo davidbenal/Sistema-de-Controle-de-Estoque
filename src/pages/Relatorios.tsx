@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { config } from '../config';
+import { apiFetch } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
@@ -73,9 +74,9 @@ export function Relatorios() {
       setLoading(true);
       try {
         const [salesRes, stockRes, invRes] = await Promise.all([
-          fetch(`${config.endpoints.relatorios.vendasPorProduto}?days=${periodDays}`).then(r => r.json()).catch(() => null),
-          fetch(config.endpoints.relatorios.estoqueValor).then(r => r.json()).catch(() => null),
-          fetch(config.endpoints.operacoes.inventoryCounts).then(r => r.json()).catch(() => null),
+          apiFetch(`${config.endpoints.relatorios.vendasPorProduto}?days=${periodDays}`).then(r => r.json()).catch(() => null),
+          apiFetch(config.endpoints.relatorios.estoqueValor).then(r => r.json()).catch(() => null),
+          apiFetch(config.endpoints.operacoes.inventoryCounts).then(r => r.json()).catch(() => null),
         ]);
 
         if (salesRes?.success) {

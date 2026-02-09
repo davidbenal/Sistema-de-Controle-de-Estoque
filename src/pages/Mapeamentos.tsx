@@ -6,6 +6,7 @@ import { Progress } from '../components/ui/progress';
 import { AlertCircle, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { config } from '../config';
 import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
 import { EditMappingDialog } from '../components/EditMappingDialog';
 
 interface Mapeamento {
@@ -45,8 +46,8 @@ export function Mapeamentos() {
     try {
       setIsLoading(true);
       const [mappingsRes, statsRes] = await Promise.all([
-        fetch(config.endpoints.mapeamentos.list),
-        fetch(config.endpoints.mapeamentos.stats),
+        apiFetch(config.endpoints.mapeamentos.list),
+        apiFetch(config.endpoints.mapeamentos.stats),
       ]);
 
       const [mappingsData, statsData] = await Promise.all([
@@ -62,7 +63,7 @@ export function Mapeamentos() {
           productNameZig: m.product_name_zig,
           recipeId: m.recipe_id,
           recipeName: m.recipe_name,
-          recipeCategory: m.recipeCategory,
+          recipeCategory: m.recipe_category || m.recipeCategory,
           confidence: m.confidence,
           needsReview: m.needs_review,
           lastUpdated: m.last_updated,

@@ -22,7 +22,7 @@ export class MapeamentosService {
 
       // Aplicar filtro needsReview
       if (filters.needsReview !== undefined) {
-        query = query.where('needsReview', '==', filters.needsReview);
+        query = query.where('needs_review', '==', filters.needsReview);
       }
 
       // Buscar dados
@@ -46,26 +46,27 @@ export class MapeamentosService {
         mapeamentos = mapeamentos.filter(m => m.sku === filters.sku);
       }
 
-      // Enriquecer com dados da receita (se recipeId existe)
+      // Enriquecer com dados da receita (se recipe_id existe)
       const enrichedMapeamentos = await Promise.all(
         mapeamentos.map(async (mapping) => {
-          if (mapping.recipeId) {
+          const recipeId = mapping.recipe_id || mapping.recipeId;
+          if (recipeId) {
             try {
               const recipeDoc = await this.fastify.db
                 .collection('recipes')
-                .doc(mapping.recipeId)
+                .doc(recipeId)
                 .get();
 
               if (recipeDoc.exists) {
                 const recipeData = recipeDoc.data();
                 return {
                   ...mapping,
-                  recipeName: recipeData?.name || mapping.recipeName,
-                  recipeCategory: recipeData?.category,
+                  recipe_name: recipeData?.name || mapping.recipe_name || mapping.recipeName,
+                  recipe_category: recipeData?.category,
                 };
               }
             } catch (err) {
-              this.fastify.log.warn(`Erro ao buscar receita ${mapping.recipeId}:`, err);
+              this.fastify.log.warn(`Erro ao buscar receita ${recipeId}:`, err);
             }
           }
           return mapping;
@@ -115,20 +116,21 @@ export class MapeamentosService {
       };
 
       // Enriquecer com dados da receita
-      if (mapping.recipeId) {
+      const recipeId = mapping.recipe_id || mapping.recipeId;
+      if (recipeId) {
         try {
           const recipeDoc = await this.fastify.db
             .collection('recipes')
-            .doc(mapping.recipeId)
+            .doc(recipeId)
             .get();
 
           if (recipeDoc.exists) {
             const recipeData = recipeDoc.data();
-            mapping.recipeName = recipeData?.name || mapping.recipeName;
-            mapping.recipeCategory = recipeData?.category;
+            mapping.recipe_name = recipeData?.name || mapping.recipe_name || mapping.recipeName;
+            mapping.recipe_category = recipeData?.category;
           }
         } catch (err) {
-          this.fastify.log.warn(`Erro ao buscar receita ${mapping.recipeId}:`, err);
+          this.fastify.log.warn(`Erro ao buscar receita ${recipeId}:`, err);
         }
       }
 

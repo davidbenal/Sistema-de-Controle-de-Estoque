@@ -7,6 +7,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Phone, Truck, CreditCard, Package, Search, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { config } from '../../config';
+import { apiFetch } from '../../lib/api';
 
 interface SupplierDetailsProps {
   data: any;
@@ -61,7 +62,7 @@ export function SupplierDetails({ data, suppliedIngredients = [], allIngredients
           const currentIds: string[] = ingredient?.supplier_ids || (ingredient?.supplier_id ? [ingredient.supplier_id] : []);
           const newIds = [...new Set([...currentIds, data.id])];
           promises.push(
-            fetch(config.endpoints.cadastros.ingrediente(id), {
+            apiFetch(config.endpoints.cadastros.ingrediente(id), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ supplierIds: newIds }),
@@ -77,7 +78,7 @@ export function SupplierDetails({ data, suppliedIngredients = [], allIngredients
           const currentIds: string[] = ingredient?.supplier_ids || (ingredient?.supplier_id ? [ingredient.supplier_id] : []);
           const newIds = currentIds.filter((sid: string) => sid !== data.id);
           promises.push(
-            fetch(config.endpoints.cadastros.ingrediente(id), {
+            apiFetch(config.endpoints.cadastros.ingrediente(id), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ supplierIds: newIds }),

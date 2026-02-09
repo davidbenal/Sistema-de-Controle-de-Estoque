@@ -21,6 +21,7 @@ import { Card, CardContent } from './ui/card';
 import { Loader2, Plus } from 'lucide-react';
 import { config } from '../config';
 import { toast } from 'sonner';
+import { apiFetch } from '../lib/api';
 
 interface Recipe {
   id: string;
@@ -69,7 +70,7 @@ export function EditMappingDialog({
   const loadRecipes = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(config.endpoints.cadastros.fichas);
+      const response = await apiFetch(config.endpoints.cadastros.fichas);
       const data = await response.json();
       if (data.success) {
         setRecipes(data.fichas || []);
@@ -90,7 +91,7 @@ export function EditMappingDialog({
     setIsSaving(true);
     try {
       // 1. Criar receita
-      const createRecipeRes = await fetch(config.endpoints.cadastros.createFicha, {
+      const createRecipeRes = await apiFetch(config.endpoints.cadastros.createFicha, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +110,7 @@ export function EditMappingDialog({
       const newRecipeId = recipeData.ficha.id;
 
       // 2. Criar alerta para completar ficha técnica
-      await fetch(config.endpoints.alertas.create, {
+      await apiFetch(config.endpoints.alertas.create, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
