@@ -180,7 +180,7 @@ export class DashboardService {
       const snapshot = await this.fastify.db.collection('ingredients').get();
       const ingredients = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as any),
       }));
 
       const abaixoMinimo = ingredients.filter(ing =>

@@ -33,18 +33,25 @@ let storage: ReturnType<typeof getStorage> | undefined;
 let auth: Auth | undefined;
 
 try {
-  const credentialsPath = path.join(__dirname, '../../firebase-credentials.json');
+  let serviceAccount: ServiceAccount;
 
-  if (!fs.existsSync(credentialsPath)) {
-    throw new Error(
-      `Firebase credentials not found at: ${credentialsPath}\n` +
-      'Please follow SETUP_FIREBASE.md to generate credentials.'
-    );
+  // Support credentials from env var (Cloud Run) or file (local dev)
+  if (process.env.FIREBASE_CREDENTIALS_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS_JSON) as ServiceAccount;
+  } else {
+    const credentialsPath = path.join(__dirname, '../../firebase-credentials.json');
+
+    if (!fs.existsSync(credentialsPath)) {
+      throw new Error(
+        `Firebase credentials not found at: ${credentialsPath}\n` +
+        'Please follow SETUP_FIREBASE.md to generate credentials.'
+      );
+    }
+
+    serviceAccount = JSON.parse(
+      fs.readFileSync(credentialsPath, 'utf8')
+    ) as ServiceAccount;
   }
-
-  const serviceAccount = JSON.parse(
-    fs.readFileSync(credentialsPath, 'utf8')
-  ) as ServiceAccount;
 
   initializeApp({
     credential: cert(serviceAccount),

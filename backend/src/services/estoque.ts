@@ -104,7 +104,7 @@ export class EstoqueService {
     try {
       const doc = await this.db.collection('suppliers').doc(supplierId).get();
       if (doc.exists) {
-        return { id: doc.id, ...doc.data() };
+        return { id: doc.id, ...(doc.data() as any) };
       }
       return null;
     } catch (error) {

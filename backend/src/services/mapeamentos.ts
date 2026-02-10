@@ -28,9 +28,9 @@ export class MapeamentosService {
       // Buscar dados
       const snapshot = await query.get();
 
-      let mapeamentos = snapshot.docs.map(doc => ({
+      let mapeamentos: any[] = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as any),
       }));
 
       // Filtro de confidence (client-side pois pode ser string ou objeto complexo)
@@ -66,7 +66,7 @@ export class MapeamentosService {
                 };
               }
             } catch (err) {
-              this.fastify.log.warn(`Erro ao buscar receita ${recipeId}:`, err);
+              this.fastify.log.warn(`Erro ao buscar receita ${recipeId}: ${err}`);
             }
           }
           return mapping;
@@ -110,9 +110,9 @@ export class MapeamentosService {
       }
 
       const doc = snapshot.docs[0];
-      const mapping = {
+      const mapping: any = {
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as any),
       };
 
       // Enriquecer com dados da receita
@@ -130,7 +130,7 @@ export class MapeamentosService {
             mapping.recipe_category = recipeData?.category;
           }
         } catch (err) {
-          this.fastify.log.warn(`Erro ao buscar receita ${recipeId}:`, err);
+          this.fastify.log.warn(`Erro ao buscar receita ${recipeId}: ${err}`);
         }
       }
 
@@ -153,7 +153,7 @@ export class MapeamentosService {
         .collection('product_mappings')
         .get();
 
-      const mapeamentos = snapshot.docs.map(doc => doc.data());
+      const mapeamentos: any[] = snapshot.docs.map(doc => doc.data() as any);
 
       const stats = {
         total: mapeamentos.length,

@@ -284,7 +284,7 @@ export class CadastrosService {
 
       let fichas = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as any),
       }));
 
       // Filtro de busca (client-side)

@@ -303,11 +303,9 @@ export async function operacoesRoutes(fastify: FastifyInstance) {
 
       // Override userId from auth token
       const authUser = await resolveUser(fastify.db, request.authUser!.uid);
-      if (authUser) {
-        data.userId = authUser.id;
-      }
+      data.userId = authUser?.id || request.authUser?.uid || 'system';
 
-      const result = await operacoesService.updateChecklistItem(id, index, data);
+      const result = await operacoesService.updateChecklistItem(id, index, data as any);
 
       if (!result.success) {
         return reply.code(404).send(result);
